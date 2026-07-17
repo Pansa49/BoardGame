@@ -1,7 +1,8 @@
 
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom"
-import { HomePage } from "./pages/home/HomePage"
 import Root from "./pages/root"
+import { HomePage } from "./pages/home/HomePage"
+import { MemberPage } from "./pages/member/MemberPage";
 
 const router = createBrowserRouter([
   {
@@ -10,11 +11,15 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/",
-        element: <Navigate to="/homePage" replace />
+        element: <Navigate to="/HomePage" replace />
       },
       {
-        path: "/homePage",
-        element: <HomePage />,
+        path: "/HomePage",
+        element: <HomePage />
+      },
+      {
+        path: "MemberPage",
+        element: < MemberPage />
       }
     ]
   }
