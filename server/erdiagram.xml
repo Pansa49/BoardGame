@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="65bd71144e">
+  <diagram id="boardgame-er" name="BoardGame DB ERD">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Sessions -->
+        <mxCell
+          id="sessions"
+          value="sessions&#10;--------&#10;* session_id (PK)&#10;table_number&#10;start_time&#10;end_time&#10;play_price&#10;status"
+          style="shape=table;startSize=30;container=1;collapsible=0;childLayout=tableLayout;fixedRows=1;rowLines=1;fontStyle=1;align=center;resizeLast=1;html=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;"
+          vertex="1"
+          parent="1">
+          <mxGeometry x="400" y="280" width="170" height="170" as="geometry"/>
+        </mxCell>
+
+        <!-- Orders -->
+        <mxCell
+          id="orders"
+          value="orders&#10;--------&#10;* order_id (PK)&#10;session_id (FK)&#10;order_time&#10;order_status"
+          style="shape=table;startSize=30;container=1;collapsible=0;childLayout=tableLayout;fixedRows=1;rowLines=1;fontStyle=1;align=center;resizeLast=1;html=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;"
+          vertex="1"
+          parent="1">
+          <mxGeometry x="120" y="280" width="170" height="130" as="geometry"/>
+        </mxCell>
+
+        <!-- Order Items -->
+        <mxCell
+          id="order_items"
+          value="order_items&#10;--------&#10;* item_id (PK)&#10;order_id (FK)&#10;product_id (FK)&#10;quantity&#10;unit_price"
+          style="shape=table;startSize=30;container=1;collapsible=0;childLayout=tableLayout;fixedRows=1;rowLines=1;fontStyle=1;align=center;resizeLast=1;html=1;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;"
+          vertex="1"
+          parent="1">
+          <mxGeometry x="120" y="520" width="170" height="150" as="geometry"/>
+        </mxCell>
+
+        <!-- Products -->
+        <mxCell
+          id="products"
+          value="products&#10;--------&#10;* product_id (PK)&#10;name&#10;category&#10;price"
+          style="shape=table;startSize=30;container=1;collapsible=0;childLayout=tableLayout;fixedRows=1;rowLines=1;fontStyle=1;align=center;resizeLast=1;html=1;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;"
+          vertex="1"
+          parent="1">
+          <mxGeometry x="420" y="520" width="170" height="130" as="geometry"/>
+        </mxCell>
+
+        <!-- Bills -->
+        <mxCell
+          id="bills"
+          value="bills&#10;--------&#10;* bill_id (PK)&#10;session_id (FK)&#10;total_play_price&#10;total_food_price&#10;grand_total&#10;payment_method&#10;payment_time"
+          style="shape=table;startSize=30;container=1;collapsible=0;childLayout=tableLayout;fixedRows=1;rowLines=1;fontStyle=1;align=center;resizeLast=1;html=1;whiteSpace=wrap;fillColor=#f8cecc;strokeColor=#b85450;"
+          vertex="1"
+          parent="1">
+          <mxGeometry x="700" y="270" width="190" height="180" as="geometry"/>
+        </mxCell>
+
+        <!-- Sessions -> Orders -->
+        <mxCell
+          id="rel_sessions_orders"
+          edge="1"
+          parent="1"
+          source="sessions"
+          target="orders"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Sessions -> Bills -->
+        <mxCell
+          id="rel_sessions_bills"
+          edge="1"
+          parent="1"
+          source="sessions"
+          target="bills"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;startArrow=ERone;startFill=0;endArrow=ERone;endFill=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Orders -> Order Items -->
+        <mxCell
+          id="rel_orders_order_items"
+          edge="1"
+          parent="1"
+          source="orders"
+          target="order_items"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Products -> Order Items -->
+        <mxCell
+          id="rel_products_order_items"
+          edge="1"
+          parent="1"
+          source="products"
+          target="order_items"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
