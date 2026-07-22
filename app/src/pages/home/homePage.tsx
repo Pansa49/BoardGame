@@ -1,6 +1,8 @@
 import { useState } from "react";
-import type { Table, FoodItem, Customer } from '../../../../share/details'
+import type { Table, FoodItem, Menus } from '../../../../share/details'
 import { SideBar, type SidebarMode } from "../../components/SideBar";
+
+import { getMenus } from "../../api/fetchdata"
 
 const FOOD_MENU: FoodItem[] = [
     { id: "f1", name: "เฟรนช์ฟรายส์ร้อนๆ", price: 89, emoji: "🍟" },
@@ -29,6 +31,7 @@ export function HomePage() {
 
     const [openSideBar, setOpenSideBar] = useState(false);
     const [sidebarMode, setSidebarMode] = useState<SidebarMode>(null);
+    const [menus, setMenus] = useState<Menus>();
 
     const [orders, setOrders] = useState<Record<number, Record<string, number>>>({
         1: { "f1": 1, "f3": 4 },
@@ -132,6 +135,18 @@ export function HomePage() {
         setOpenSideBar(false);
         setSidebarMode(null);
     };
+
+    const handleGetMenus = async () => {
+        try {
+            const res = await getMenus();
+            const menu = res.data;
+            console.log("meneu : ", menu)
+            setMenus(menu);
+
+        } catch (error) {
+            console.log("get menus error or something error")
+        }
+    }
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col overflow-x-hidden">
@@ -249,7 +264,6 @@ export function HomePage() {
                                         {/* ปุ่มสั่งอาหารแบบ Drawer สไลด์ (แสดงเมื่อจองแล้วเท่านั้น) */}
                                         <button
                                             onClick={() => {
-
                                                 handleOpenSidebar('customer')
                                             }}
                                             className="w-full py-3 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10"
@@ -258,7 +272,7 @@ export function HomePage() {
                                         </button>
                                         <button
                                             onClick={() => {
-
+                                                handleGetMenus()
                                                 handleOpenSidebar('food')
                                             }}
                                             className="w-full py-3 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10"
@@ -267,7 +281,6 @@ export function HomePage() {
                                         </button>
                                         <button
                                             onClick={() => {
-
                                                 handleOpenSidebar('drink')
                                             }}
                                             className="w-full py-3 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10"
