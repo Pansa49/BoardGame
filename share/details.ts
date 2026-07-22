@@ -22,9 +22,9 @@ export interface Customer {
     status: "เล่นอยู่" | "กลับแล้ว";
 }
 
-export interface Menus {
-    product_id: 1;
-    name: "น้ำเปล่า (Water)";
-    category: "Beverage";
-    price: "15.00";
-}
+export interface Menu {
+    product_id: string;
+    name: string;
+    category: string;
+    price: number;
+}   
