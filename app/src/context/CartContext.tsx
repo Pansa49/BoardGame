@@ -2,19 +2,16 @@ import { createContext, useState } from "react";
 import type { Menu } from '../../../share/details'
 
 type CartContextType = {
-
     menus: Menu[];
-
-    showMenus: (menu: Menu) => void;
+    updateMenus: (menu: Menu) => void;
 };
-
 
 export const CartContext = createContext<CartContextType | null>(null);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
     const [menus, setMenus] = useState<Menu[]>([]);
 
-    const showMenus = (menu: Menu) => {
+    const updateMenus = (menu: Menu) => {
         setMenus((prev) => [...prev, menu])
         console.log({
             show: menu
@@ -25,7 +22,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         <CartContext.Provider
             value={{
                 menus,
-                showMenus,
+                updateMenus,
             }}
         >
             {children}
