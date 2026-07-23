@@ -1,8 +1,8 @@
 import { useState } from "react";
-import type { Table, FoodItem, Menus } from '../../../../share/details'
+import type { Table, FoodItem } from '../../../../share/details'
 import { SideBar, type SidebarMode } from "../../components/SideBar";
-
 import { getMenus } from "../../api/fetchdata"
+import { useCartContext } from "../../hook/use-cart-context";
 
 const FOOD_MENU: FoodItem[] = [
     { id: "f1", name: "เฟรนช์ฟรายส์ร้อนๆ", price: 89, emoji: "🍟" },
@@ -26,12 +26,9 @@ export function HomePage() {
         { id: 8, name: "8", status: "available" },
     ]);
     const [selectedTableId, setSelectedTableId] = useState<number | null>(1);
-
     const [tempCustomerCount, setTempCustomerCount] = useState<number>(1);
-
     const [openSideBar, setOpenSideBar] = useState(false);
     const [sidebarMode, setSidebarMode] = useState<SidebarMode>(null);
-    const [menus, setMenus] = useState<Menus>();
 
     const [orders, setOrders] = useState<Record<number, Record<string, number>>>({
         1: { "f1": 1, "f3": 4 },
@@ -42,6 +39,7 @@ export function HomePage() {
     const currentTableOrders = selectedTableId ? (orders[selectedTableId] || {}) : {};
 
     const [timeCount, setTimeCount] = useState<string | null>(null);
+    const { showMenus } = useCartContext()
 
 
     const handleOpenBookingDrawer = () => {
@@ -140,8 +138,7 @@ export function HomePage() {
         try {
             const res = await getMenus();
             const menu = res.data;
-            console.log("meneu : ", menu)
-            setMenus(menu);
+            showMenus(menu);
 
         } catch (error) {
             console.log("get menus error or something error")
