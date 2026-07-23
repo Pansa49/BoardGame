@@ -23,7 +23,7 @@ export interface Customer {
 }
 
 export interface Menu {
-    product_id: string;
+    product_id: number;
     name: string;
     category: string;
     price: number;
