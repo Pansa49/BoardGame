@@ -1,32 +1,28 @@
-import React from 'react';
 
-// Type ข้อมูลตาม Response จาก API จริงของคุณ
-export interface MenuItem {
-    product_id: number;
-    name: string;
-    category: string;
-    price: string;
-}
+import type { Menu } from '../../../../share/details'
 
 type MenuModeListProps = {
-    mode: 'food' | 'drink';
-    menus: MenuItem[];
+    mode: 'Food' | 'Drink';
+    menus: Menu[];
     tempOrders: Record<number, number>;
     onUpdateOrderQty?: (productId: number, delta: number) => void;
 };
 
-export function MenuModeList({ mode, menus, tempOrders, onUpdateOrderQty, }: MenuModeListProps) {
-
+export function MenuModeList({ mode, menus, tempOrders, onUpdateOrderQty }: MenuModeListProps) {
     // กรองข้อมูลตาม mode
     const filteredMenus = menus.filter((item) => {
-        if (mode === 'drink') {
-            return item.category === 'Beverage' || item.category === 'Smoothie';
+        if (mode === 'Drink') {
+            return item.category === 'Drink';
         }
-        if (mode === 'food') {
-            return item.category === 'Snack' || item.category === 'Food';
+        if (mode === 'Food') {
+            return item.category === 'Food';
         }
         return true;
     });
+
+    console.log({
+        filteredMenus: filteredMenus
+    })
 
     if (filteredMenus.length === 0) {
         return (
@@ -37,7 +33,8 @@ export function MenuModeList({ mode, menus, tempOrders, onUpdateOrderQty, }: Men
     }
 
     return (
-        <div className="flex flex-col gap-2.5">
+        <div id='menu-container'
+            className="flex flex-col gap-2.5">
             {filteredMenus.map((item) => {
                 const qty = tempOrders[item.product_id] || 0;
 
@@ -53,7 +50,7 @@ export function MenuModeList({ mode, menus, tempOrders, onUpdateOrderQty, }: Men
                             </span>
                             <div className="flex items-center gap-2">
                                 <span className="text-xs text-amber-400 font-mono font-semibold">
-                                    {parseFloat(item.price)} บาท
+                                    {parseFloat(String(item.price))} บาท
                                 </span>
                                 <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded-md border border-slate-800">
                                     {item.category}

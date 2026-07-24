@@ -39,7 +39,7 @@ export function HomePage() {
     const currentTableOrders = selectedTableId ? (orders[selectedTableId] || {}) : {};
 
     const [timeCount, setTimeCount] = useState<string | null>(null);
-    const { showMenus } = useCartContext()
+    const { updateMenus } = useCartContext()
 
 
     const handleOpenBookingDrawer = () => {
@@ -138,7 +138,7 @@ export function HomePage() {
         try {
             const res = await getMenus();
             const menu = res.data;
-            showMenus(menu);
+            updateMenus(menu);
 
         } catch (error) {
             console.log("get menus error or something error")
@@ -270,7 +270,7 @@ export function HomePage() {
                                         <button
                                             onClick={() => {
                                                 handleGetMenus()
-                                                handleOpenSidebar('food')
+                                                handleOpenSidebar('Food')
                                             }}
                                             className="w-full py-3 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10"
                                         >
@@ -278,7 +278,7 @@ export function HomePage() {
                                         </button>
                                         <button
                                             onClick={() => {
-                                                handleOpenSidebar('drink')
+                                                handleOpenSidebar('Drink')
                                             }}
                                             className="w-full py-3 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10"
                                         >

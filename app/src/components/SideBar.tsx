@@ -1,6 +1,7 @@
+import { useCartContext } from "../hook/use-cart-context";
+import { MenuModeList } from './SideBarModeList/MenuModeList';
 
-
-export type SidebarMode = 'customer' | 'food' | 'drink' | null;
+export type SidebarMode = 'customer' | 'Food' | 'Drink' | null;
 
 type Props = {
     isOpen: boolean;
@@ -9,9 +10,12 @@ type Props = {
 };
 
 export function SideBar({ isOpen, mode, onClose }: Props) {
+    const { menus, tempOrders, updateOrderQty } = useCartContext();
     console.log({
-        isOpen: isOpen,
-        mode: mode
+        mode: mode,
+        menus: menus,
+        tempOrders: tempOrders,
+        updateOrderQty: updateOrderQty
     })
 
     if (!isOpen || !mode) return null;
@@ -42,7 +46,24 @@ export function SideBar({ isOpen, mode, onClose }: Props) {
 
                             {/* รายการเมนูอาหารที่มีในร้าน */}
                             <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-2.5 mb-4">
-                                Side Bar
+                                {mode}
+                            </div>
+                            <div className="flex-1 overflow-y-auto pr-1 mb-4">
+
+                                {/* Switch Render ตาม Mode */}
+                                {mode === 'customer' && (
+                                    <div>{/* เรียกใช้ <CustomerModeList /> หรือ UI ปรับจำนวนคน */}</div>
+                                )}
+
+                                {(mode === 'Food' || mode === 'Drink') && (
+                                    <MenuModeList
+                                        mode={mode}
+                                        menus={menus}
+                                        tempOrders={tempOrders}
+                                        onUpdateOrderQty={updateOrderQty}
+                                    />
+                                )}
+
                             </div>
                         </div>
 
