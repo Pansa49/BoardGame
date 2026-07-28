@@ -20,10 +20,6 @@ export function MenuModeList({ mode, menus, tempOrders, onUpdateOrderQty }: Menu
         return true;
     });
 
-    console.log({
-        filteredMenus: filteredMenus
-    })
-
     if (filteredMenus.length === 0) {
         return (
             <div className="text-center text-slate-500 py-12 text-sm">

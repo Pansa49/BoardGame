@@ -11,12 +11,12 @@ type Props = {
 
 export function SideBar({ isOpen, mode, onClose }: Props) {
     const { menus, tempOrders, updateOrderQty } = useCartContext();
-    console.log({
-        mode: mode,
-        menus: menus,
-        tempOrders: tempOrders,
-        updateOrderQty: updateOrderQty
-    })
+    // console.log({
+    //     mode: mode,
+    //     menus: menus,
+    //     tempOrders: tempOrders,
+    //     updateOrderQty: updateOrderQty
+    // })
 
     if (!isOpen || !mode) return null;
 
@@ -45,10 +45,10 @@ export function SideBar({ isOpen, mode, onClose }: Props) {
                             </div>
 
                             {/* รายการเมนูอาหารที่มีในร้าน */}
-                            <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-2.5 mb-4">
+                            <div className="flex overflow-y-auto pr-1 flex flex-col gap-2.5 mb-4">
                                 {mode}
                             </div>
-                            <div className="flex-1 overflow-y-auto pr-1 mb-4">
+                            <div className="flex-5 overflow-y-auto pr-1 mb-4">
 
                                 {/* Switch Render ตาม Mode */}
                                 {mode === 'customer' && (
