@@ -9,4 +9,7 @@ userRouter.route('/start')
 userRouter.route('/menu')
     .get(userService.getMenus)
 
+userRouter.route('/table')
+    .get(userService.getTables)
+
 module.exports = userRouter;
