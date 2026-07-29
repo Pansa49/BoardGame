@@ -27,4 +27,10 @@ export interface Menu {
     name: string;
     category: string;
     price: number;
-}   
+}
+
+export interface Table {
+    table_id: number;
+    table_number: string;
+    capacity: number;
+}

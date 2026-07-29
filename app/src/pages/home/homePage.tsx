@@ -1,31 +1,32 @@
-import { useState } from "react";
-import type { Table, FoodItem } from '../../../../share/details'
+import { useState, useEffect } from "react";
+import type { FoodItem, Table } from '../../../../share/details'
 import { SideBar, type SidebarMode } from "../../components/SideBar";
-import { getMenus } from "../../api/fetchdata"
+import { getMenus, getTables } from "../../api/fetchdata"
 import { useCartContext } from "../../hook/use-cart-context";
 
-const FOOD_MENU: FoodItem[] = [
-    { id: "f1", name: "เฟรนช์ฟรายส์ร้อนๆ", price: 89, emoji: "🍟" },
-    { id: "f2", name: "นักเก็ตไก่ซอสบาร์บีคิว", price: 99, emoji: "🍗" },
-    { id: "f3", name: "โค้กเย็นเจี๊ยบ", price: 29, emoji: "🥤" },
-    { id: "f4", name: "ชาเขียวมัทฉะลาเต้", price: 65, emoji: "🍵" },
-    { id: "f5", name: "ป๊อปคอร์นชีส", price: 59, emoji: "🍿" },
-];
+// const FOOD_MENU: FoodItem[] = [
+//     { id: "f1", name: "เฟรนช์ฟรายส์ร้อนๆ", price: 89, emoji: "🍟" },
+//     { id: "f2", name: "นักเก็ตไก่ซอสบาร์บีคิว", price: 99, emoji: "🍗" },
+//     { id: "f3", name: "โค้กเย็นเจี๊ยบ", price: 29, emoji: "🥤" },
+//     { id: "f4", name: "ชาเขียวมัทฉะลาเต้", price: 65, emoji: "🍵" },
+//     { id: "f5", name: "ป๊อปคอร์นชีส", price: 59, emoji: "🍿" },
+// ];
 
 const HOURLY_RATE_PER_PERSON = 50;
 
 export function HomePage() {
-    const [tables, setTables] = useState<Table[]>([
-        { id: 1, name: "1", status: "occupied", startTime: "12:30", customerCount: 4 },
-        { id: 2, name: "2", status: "available" },
-        { id: 3, name: "3", status: "occupied", startTime: "14:15", customerCount: 2 },
-        { id: 4, name: "4", status: "available" },
-        { id: 5, name: "5", status: "available" },
-        { id: 6, name: "6", status: "available" },
-        { id: 7, name: "7", status: "available" },
-        { id: 8, name: "8", status: "available" },
-    ]);
-    const [selectedTableId, setSelectedTableId] = useState<number | null>(1);
+    // const [tables, setTables] = useState<Table[]>([
+    //     { id: 1, name: "1", status: "occupied", startTime: "12:30", customerCount: 4 },
+    //     { id: 2, name: "2", status: "available" },
+    //     { id: 3, name: "3", status: "occupied", startTime: "14:15", customerCount: 2 },
+    //     { id: 4, name: "4", status: "available" },
+    //     { id: 5, name: "5", status: "available" },
+    //     { id: 6, name: "6", status: "available" },
+    //     { id: 7, name: "7", status: "available" },
+    //     { id: 8, name: "8", status: "available" },
+    // ]);
+    const [tables, setTables] = useState<Table[]>([]);
+    const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
     const [tempCustomerCount, setTempCustomerCount] = useState<number>(1);
     const [openSideBar, setOpenSideBar] = useState(false);
     const [sidebarMode, setSidebarMode] = useState<SidebarMode>(null);
@@ -35,11 +36,15 @@ export function HomePage() {
         3: { "f2": 2, "f4": 1 },
     });
 
-    const selectedTable = tables.find(t => t.id === selectedTableId) || null;
+    const selectedTable = tables.find(t => t.table_id === selectedTableId) || null;
     const currentTableOrders = selectedTableId ? (orders[selectedTableId] || {}) : {};
 
     const [timeCount, setTimeCount] = useState<string | null>(null);
     const { updateMenus } = useCartContext()
+
+    useEffect(() => {
+        handleGetTables();
+    }, []);
 
 
     const handleOpenBookingDrawer = () => {
@@ -69,44 +74,6 @@ export function HomePage() {
             delete newOrders[tableId];
             return newOrders;
         });
-    };
-
-    const handleAddFood = (foodId: string) => {
-        if (!selectedTableId) return;
-        setOrders(prev => {
-            const tableOrder = prev[selectedTableId] || {};
-            return {
-                ...prev,
-                [selectedTableId]: {
-                    ...tableOrder,
-                    [foodId]: (tableOrder[foodId] || 0) + 1
-                }
-            };
-        });
-    };
-
-    const handleRemoveFood = (foodId: string) => {
-        if (!selectedTableId) return;
-        setOrders(prev => {
-            const tableOrder = prev[selectedTableId] || {};
-            const newQty = (tableOrder[foodId] || 0) - 1;
-            const updatedTableOrder = { ...tableOrder };
-
-            if (newQty <= 0) {
-                delete updatedTableOrder[foodId];
-            } else {
-                updatedTableOrder[foodId] = newQty;
-            }
-
-            return { ...prev, [selectedTableId]: updatedTableOrder };
-        });
-    };
-
-    const calculateFoodTotal = () => {
-        return Object.entries(currentTableOrders).reduce((sum, [foodId, qty]) => {
-            const food = FOOD_MENU.find(f => f.id === foodId);
-            return sum + (food ? food.price * qty : 0);
-        }, 0);
     };
 
     const calculateTimePlayTotal = () => {
@@ -145,6 +112,23 @@ export function HomePage() {
         }
     }
 
+    const handleGetTables = async () => {
+        try {
+            const res = await getTables();
+            const tables = res.data;
+
+            setTables(tables);
+            // updatedTables(tables);
+
+            if (tables.length > 0 && !selectedTableId) {
+                setSelectedTableId(tables[0].id);
+            }
+        } catch (error) {
+            console.log("get tables error or something error")
+        }
+    }
+
+
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col overflow-x-hidden">
 
@@ -174,19 +158,21 @@ export function HomePage() {
                         {/*-- โต๊ะทั้งหมด --*/}
                         <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 overflow-y-auto max-h-[60vh] pr-2">
                             {tables.map((table) => (
+
                                 <button
-                                    key={table.id}
-                                    onClick={() => setSelectedTableId(table.id)}
+                                    key={table.table_id}
+                                    onClick={() => setSelectedTableId(table.table_id)}
                                     className={`relative rounded-2xl border-2 p-5 flex flex-col items-center justify-between aspect-square transition-all duration-300
-                                            ${selectedTableId === table.id ? 'ring-4 ring-amber-500/40 border-amber-400' : 'border-slate-800'}
-                                            ${table.status === "occupied"
-                                            ? "bg-gradient-to-br from-rose-950/80 to-rose-900/40 hover:from-rose-900"
-                                            : "bg-gradient-to-br from-slate-900 to-slate-800/50 hover:from-slate-800"
+        hover:border-yellow-400 hover:shadow-lg hover:shadow-yellow-400/20
+        ${selectedTableId === table.table_id ? 'ring-4 ring-amber-500/40 border-amber-400' : 'border-slate-800'}
+        ${table.status === "occupied"
+                                            ? "bg-gradient-to-br from-rose-950/80 to-rose-900/40"
+                                            : "bg-gradient-to-br from-slate-900 to-slate-800/50"
                                         }`}
                                 >
                                     <div className="flex justify-between w-full">
                                         <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-950/80 text-slate-300 border border-slate-800">
-                                            T-{table.name}
+                                            T-{table.table_number}
                                         </span>
                                         <span className={`w-3.5 h-3.5 rounded-full border ${table.status === "occupied" ? "bg-rose-500 border-rose-400" : "bg-emerald-500 border-emerald-400"}`}></span>
                                     </div>
@@ -304,7 +290,7 @@ export function HomePage() {
                                     <div className="mb-4">
                                         <h4 className="text-[10px] font-bold uppercase text-slate-400 tracking-wider mb-2">📋 รายการที่สั่งแล้ว</h4>
                                         <div className="max-h-[120px] overflow-y-auto flex flex-col gap-1.5 pr-1">
-                                            {Object.entries(currentTableOrders).map(([foodId, qty]) => {
+                                            {/* {Object.entries(currentTableOrders).map(([foodId, qty]) => {
                                                 const food = FOOD_MENU.find(f => f.id === foodId);
                                                 if (!food) return null;
                                                 return (
@@ -313,7 +299,7 @@ export function HomePage() {
                                                         <span className="font-mono text-amber-500 font-bold">x{qty}</span>
                                                     </div>
                                                 );
-                                            })}
+                                            })} */}
                                         </div>
                                     </div>
                                 )}
@@ -324,7 +310,7 @@ export function HomePage() {
                                 <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col gap-2 mb-4">
                                     <div className="flex justify-between text-xs text-slate-400">
                                         <span>ค่าเครื่องดื่ม & อาหาร</span>
-                                        <span className="font-bold text-slate-200">{calculateFoodTotal()} บาท</span>
+                                        <span className="font-bold text-slate-200">{"calculateFoodTotal()"} บาท</span>
                                     </div>
                                     <div className="flex justify-between text-xs text-slate-400">
                                         <span>
@@ -334,7 +320,7 @@ export function HomePage() {
                                     </div>
                                     <div className="border-t border-slate-800 my-1 pt-2 flex justify-between text-sm font-extrabold text-white">
                                         <span>ยอดรวมค่าโต๊ะทั้งหมด</span>
-                                        <span className="text-amber-400">{calculateFoodTotal() + calculateTimePlayTotal()} บาท</span>
+                                        <span className="text-amber-400">{"calculateFoodTotal()" + calculateTimePlayTotal()} บาท</span>
                                     </div>
                                 </div>
 
