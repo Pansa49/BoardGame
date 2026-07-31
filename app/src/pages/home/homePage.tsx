@@ -39,7 +39,6 @@ export function HomePage() {
     const selectedTable = tables.find(t => t.table_id === selectedTableId) || null;
     const currentTableOrders = selectedTableId ? (orders[selectedTableId] || {}) : {};
 
-    const [timeCount, setTimeCount] = useState<string | null>(null);
     const { updateMenus } = useCartContext()
 
     useEffect(() => {
@@ -49,22 +48,12 @@ export function HomePage() {
 
     const handleOpenBookingDrawer = () => {
         setTempCustomerCount(1);
-
     };
 
-    const handleUpdateCustomerCount = (count: number) => {
-        if (!selectedTableId) return;
-        setTables(prev => prev.map(t => {
-            if (t.id === selectedTableId) {
-                return { ...t, customerCount: count };
-            }
-            return t;
-        }));
-    };
 
     const handleClearTable = (tableId: number) => {
         setTables(prev => prev.map(t => {
-            if (t.id === tableId) {
+            if (t.table_id === tableId) {
                 return { ...t, status: "available", startTime: undefined, customerCount: undefined };
             }
             return t;
@@ -82,13 +71,13 @@ export function HomePage() {
         return ppl * HOURLY_RATE_PER_PERSON;
     };
 
-    const handleTimeCount = () => {
+    const getCurrentTimeString = () => {
         const currentTimeString = new Date().toLocaleTimeString('th-TH', {
             hour: '2-digit',
             minute: '2-digit'
         });
-        console.log(currentTimeString);
-        setTimeCount(currentTimeString); // ผลลัพธ์จะได้เช่น "14:30"
+
+        return currentTimeString; // ผลลัพธ์จะได้เช่น "14:30"
     };
 
     const handleOpenSidebar = (mode: SidebarMode) => {
@@ -121,13 +110,32 @@ export function HomePage() {
             // updatedTables(tables);
 
             if (tables.length > 0 && !selectedTableId) {
-                setSelectedTableId(tables[0].id);
+                setSelectedTableId(tables[0].table_id);
             }
         } catch (error) {
             console.log("get tables error or something error")
         }
     }
 
+    const handleOpenTable = () => {
+        if (!selectedTableId) return;
+
+        const startTime = getCurrentTimeString();
+
+        setTables(prev => prev.map(t => {
+            if (t.table_id === selectedTableId) {
+                return {
+                    ...t,
+                    status: "occupied",
+                    startTime: startTime,
+                    customerCount: tempCustomerCount || 1 // ตั้งค่าเริ่มต้นอย่างน้อย 1 คน
+                };
+            }
+            return t;
+        }));
+
+        handleOpenBookingDrawer();
+    }
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col overflow-x-hidden">
@@ -181,7 +189,7 @@ export function HomePage() {
                                         <div className="text-5xl mb-1">
                                             {table.status === "occupied" ? "🎲" : "🛋️"}
                                         </div>
-                                        <p className="text-sm font-bold text-slate-200">โต๊ะ {table.name}</p>
+                                        <p className="text-sm font-bold text-slate-200">โต๊ะ {table.table_number}</p>
                                     </div>
 
                                     <div className="w-full text-center">
@@ -234,7 +242,7 @@ export function HomePage() {
                                             <div className="flex items-center gap-4">
 
                                                 <span className="text-xl font-mono font-bold text-amber-400 text-center">
-                                                    {timeCount}
+                                                    {selectedTable.startTime || "-"}
                                                 </span>
 
                                                 <span className="text-xl font-mono font-bold text-amber-400 text-center">
@@ -273,11 +281,8 @@ export function HomePage() {
                                     </div>
                                 ) : (
                                     <button
-                                        //onClick={handleOpenBookingDrawer}
                                         onClick={() => {
-                                            handleTimeCount();
-                                            handleOpenBookingDrawer();
-                                            handleOpenSidebar('customer')
+                                            handleOpenTable();
                                         }}
                                         className="w-full py-3 rounded-xl text-xs font-bold mb-6 bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition-all uppercase tracking-wider"
                                     >
@@ -320,7 +325,9 @@ export function HomePage() {
                                     </div>
                                     <div className="border-t border-slate-800 my-1 pt-2 flex justify-between text-sm font-extrabold text-white">
                                         <span>ยอดรวมค่าโต๊ะทั้งหมด</span>
-                                        <span className="text-amber-400">{"calculateFoodTotal()" + calculateTimePlayTotal()} บาท</span>
+                                        <span className="text-amber-400">
+                                            {"calculateFoodTotal()" + calculateTimePlayTotal()} บาท
+                                        </span>
                                     </div>
                                 </div>
 
@@ -328,14 +335,14 @@ export function HomePage() {
                                 <div className="flex flex-col gap-2">
                                     <button
                                         disabled={selectedTable.status === "available"}
-                                        onClick={() => handleClearTable(selectedTable.id)}
+                                        onClick={() => handleClearTable(selectedTable.table_id)}
                                         className="w-full bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 disabled:from-slate-800 disabled:to-slate-800 text-slate-950 font-bold py-3.5 rounded-2xl text-center flex justify-center items-center gap-2 transition-all shadow-lg shadow-amber-500/10 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                                     >
                                         🧾 เช็คบิลอาหาร & ปิดโต๊ะ
                                     </button>
                                     {selectedTable.status === "occupied" && (
                                         <button
-                                            onClick={() => handleClearTable(selectedTable.id)}
+                                            onClick={() => handleClearTable(selectedTable.table_id)}
                                             className="w-full py-2 rounded-xl text-[10px] font-bold bg-transparent text-rose-400 hover:text-rose-300 border border-rose-500/20 hover:border-rose-500/40 transition-all uppercase tracking-wider"
                                         >
                                             ❌ ยกเลิกการจองโต๊ะนี้
