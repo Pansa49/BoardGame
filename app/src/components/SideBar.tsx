@@ -66,20 +66,6 @@ export function SideBar({ isOpen, mode, onClose }: Props) {
 
                             </div>
                         </div>
-
-                        {/* ส่วนสรุปราคาของออเดอร์ใน Drawer */}
-                        <div className="border-t border-slate-800 pt-4 bg-slate-900">
-                            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800/80 mb-4 flex justify-between items-center">
-                                <span className="text-xs text-slate-400">รวมค่าอาหารของโต๊ะนี้:</span>
-                                {/* <span className="text-lg font-bold text-amber-400">{calculateFoodTotal()} บาท</span> */}
-                            </div>
-                            <button
-                                onClick={onClose}
-                                className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3.5 rounded-xl text-center text-sm shadow-lg transition-colors"
-                            >
-                                เสร็จสิ้น / บันทึกรายการ
-                            </button>
-                        </div>
                     </div>
                 </div>
             )}
