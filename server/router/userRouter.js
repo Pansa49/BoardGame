@@ -12,4 +12,10 @@ userRouter.route('/menu')
 userRouter.route('/table')
     .get(userService.getTables)
 
+userRouter.route('/order')
+    .post(userService.createOrders)
+
+userRouter.route('/session')
+    .post(userService.createSessions)
+
 module.exports = userRouter;
