@@ -1,30 +1,12 @@
 import { useState, useEffect } from "react";
-import type { FoodItem, Table } from '../../../../share/details'
+import type { Table } from '../../../../share/details'
 import { SideBar, type SidebarMode } from "../../components/SideBar";
-import { getMenus, getTables } from "../../api/fetchdata"
+import { getMenus, getTables, createSessions } from "../../api/fetchdata"
 import { useCartContext } from "../../hook/use-cart-context";
-
-// const FOOD_MENU: FoodItem[] = [
-//     { id: "f1", name: "เฟรนช์ฟรายส์ร้อนๆ", price: 89, emoji: "🍟" },
-//     { id: "f2", name: "นักเก็ตไก่ซอสบาร์บีคิว", price: 99, emoji: "🍗" },
-//     { id: "f3", name: "โค้กเย็นเจี๊ยบ", price: 29, emoji: "🥤" },
-//     { id: "f4", name: "ชาเขียวมัทฉะลาเต้", price: 65, emoji: "🍵" },
-//     { id: "f5", name: "ป๊อปคอร์นชีส", price: 59, emoji: "🍿" },
-// ];
 
 const HOURLY_RATE_PER_PERSON = 50;
 
 export function HomePage() {
-    // const [tables, setTables] = useState<Table[]>([
-    //     { id: 1, name: "1", status: "occupied", startTime: "12:30", customerCount: 4 },
-    //     { id: 2, name: "2", status: "available" },
-    //     { id: 3, name: "3", status: "occupied", startTime: "14:15", customerCount: 2 },
-    //     { id: 4, name: "4", status: "available" },
-    //     { id: 5, name: "5", status: "available" },
-    //     { id: 6, name: "6", status: "available" },
-    //     { id: 7, name: "7", status: "available" },
-    //     { id: 8, name: "8", status: "available" },
-    // ]);
     const [tables, setTables] = useState<Table[]>([]);
     const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
     const [tempCustomerCount, setTempCustomerCount] = useState<number>(1);
@@ -44,12 +26,6 @@ export function HomePage() {
     useEffect(() => {
         handleGetTables();
     }, []);
-
-
-    const handleOpenBookingDrawer = () => {
-        setTempCustomerCount(1);
-    };
-
 
     const handleClearTable = (tableId: number) => {
         setTables(prev => prev.map(t => {
@@ -117,24 +93,40 @@ export function HomePage() {
         }
     }
 
-    const handleOpenTable = () => {
+    const handleOpenTable = async () => {
         if (!selectedTableId) return;
 
-        const startTime = getCurrentTimeString();
+        const customerCount = tempCustomerCount || 1; //default =1
 
-        setTables(prev => prev.map(t => {
-            if (t.table_id === selectedTableId) {
-                return {
-                    ...t,
-                    status: "occupied",
-                    startTime: startTime,
-                    customerCount: tempCustomerCount || 1 // ตั้งค่าเริ่มต้นอย่างน้อย 1 คน
-                };
+        try {
+            const res = await createSessions(selectedTableId, customerCount)
+
+            if (res.success && res.response) {
+                const newSessionId = res.response.session_id;
+                const startTime = getCurrentTimeString();
+
+                setTables(prev => prev.map(t => {
+                    if (t.table_id === selectedTableId) {
+                        return {
+                            ...t,
+                            status: "occupied",
+                            startTime: startTime,
+                            customerCount: customerCount,
+                            sessionId: newSessionId
+                        };
+                    }
+                    return t;
+                }));
+                setTempCustomerCount(1);
+                console.log(res)
+            } else {
+                console.error("Failed to create session:", res.error);
+                alert("ไม่สามารถเปิดโต๊ะได้ กรุณาลองใหม่อีกครั้ง");
             }
-            return t;
-        }));
 
-        handleOpenBookingDrawer();
+        } catch (error) {
+            console.error("Error in handleOpenTable:", error);
+        }
     }
 
     return (
