@@ -1,3 +1,5 @@
+import type { OrderItemPayload } from "../../../share/details"
+
 
 const local_api_url = "http://localhost:8080/boardgame";
 
@@ -52,18 +54,15 @@ export async function createSessions(table_id: number, customer_count: number) {
     }
 }
 
-export async function createOrders(session_id: number, product_id: number, quantity: number, unit_price: number,) {
+export async function closedSession(session_id: number) {
     try {
-        const data = await fetch(`${local_api_url}/order`, {
-            method: 'POST',
+        const data = await fetch(`${local_api_url}/session`, {
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                session_id: session_id,
-                product_id: product_id,
-                quantity: quantity,
-                unit_price: unit_price
+                session_id: session_id
             }),
         });
 
@@ -79,3 +78,42 @@ export async function createOrders(session_id: number, product_id: number, quant
         return { success: false, error };
     }
 }
+
+export async function createOrders(session_id: number, items: OrderItemPayload[]) {
+    try {
+        const payload = {
+            session_id: Number(session_id),
+            items: items.map(item => ({
+                product_id: Number(item.product_id),
+                quantity: Number(item.quantity),
+                unit_price: Number(item.unit_price)
+            }))
+        };
+
+        console.log("Sending Payload to Backend:", payload);
+
+        const data = await fetch(`${local_api_url}/order`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+
+        const response = await data.json();
+
+        if (!data.ok) {
+            // throw new Error(`HTTP error! status: ${data.status}`);
+            console.error("Backend Error Response (400 Details):", response);
+            return { success: false, response };
+        }
+        return { success: true, response };
+
+    } catch (error) {
+        console.error("Error creating order:", error);
+        return { success: false, error };
+    }
+}
+
+
