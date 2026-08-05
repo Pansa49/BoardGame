@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import type { MenuModeListProps, OrderItemPayload } from '../../../../share/details';
 import { createOrders } from '../../api/fetchdata';
+import { useCartContext } from '../../hook/use-cart-context';
 
 export function MenuModeList({ sessionId, mode, menus, tempOrders, onUpdateOrderQty, onSuccess, }: MenuModeListProps) {
     const [isLoading, setIsLoading] = useState(false);
+    const { resetTempOrders } = useCartContext();
 
     // 1. กรองเมนูตาม Mode (Food/Drink)
     const filteredMenus = menus.filter((item) => {
@@ -36,6 +38,7 @@ export function MenuModeList({ sessionId, mode, menus, tempOrders, onUpdateOrder
             const res = await createOrders(sessionId, orderItems);
 
             if (res.success) {
+                resetTempOrders();
                 onSuccess?.();
             }
 
