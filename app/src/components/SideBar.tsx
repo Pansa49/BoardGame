@@ -1,22 +1,17 @@
 import { useCartContext } from "../hook/use-cart-context";
 import { MenuModeList } from './SideBarModeList/MenuModeList';
+import { type SideBarProps } from "../../../share/details";
+// export type SidebarMode = 'customer' | 'Food' | 'Drink' | null;
 
-export type SidebarMode = 'customer' | 'Food' | 'Drink' | null;
+// type sideBarProps = {
+//     sessionId: number;
+//     isOpen: boolean;
+//     mode: SidebarMode;
+//     onClose: () => void;
+// };
 
-type Props = {
-    isOpen: boolean;
-    mode: SidebarMode;
-    onClose: () => void;
-};
-
-export function SideBar({ isOpen, mode, onClose }: Props) {
+export function SideBar({ sessionId, isOpen, mode, onClose }: SideBarProps) {
     const { menus, tempOrders, updateOrderQty } = useCartContext();
-    // console.log({
-    //     mode: mode,
-    //     menus: menus,
-    //     tempOrders: tempOrders,
-    //     updateOrderQty: updateOrderQty
-    // })
 
     if (!isOpen || !mode) return null;
 
@@ -57,10 +52,16 @@ export function SideBar({ isOpen, mode, onClose }: Props) {
 
                                 {(mode === 'Food' || mode === 'Drink') && (
                                     <MenuModeList
+                                        sessionId={sessionId}
                                         mode={mode}
                                         menus={menus}
                                         tempOrders={tempOrders}
                                         onUpdateOrderQty={updateOrderQty}
+                                        onSuccess={() => {
+                                            // สิ่งที่จะให้เกิดขึ้นหลังกดสั่งอาหารสำเร็จ
+                                            // เคลียร์ตะกร้าสินค้า
+                                            // ปิดแถบเมนู
+                                        }}
                                     />
                                 )}
 

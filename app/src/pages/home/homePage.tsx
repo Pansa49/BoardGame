@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import type { Table } from '../../../../share/details'
-import { SideBar, type SidebarMode } from "../../components/SideBar";
-import { getMenus, getTables, createSessions } from "../../api/fetchdata"
+import type { Table, SidebarMode } from '../../../../share/details'
+import { SideBar } from "../../components/SideBar";
+import { getMenus, getTables, createSessions, closedSession } from "../../api/fetchdata"
 import { useCartContext } from "../../hook/use-cart-context";
 
 const HOURLY_RATE_PER_PERSON = 50;
@@ -12,34 +12,15 @@ export function HomePage() {
     const [tempCustomerCount, setTempCustomerCount] = useState<number>(1);
     const [openSideBar, setOpenSideBar] = useState(false);
     const [sidebarMode, setSidebarMode] = useState<SidebarMode>(null);
-
-    const [orders, setOrders] = useState<Record<number, Record<string, number>>>({
-        1: { "f1": 1, "f3": 4 },
-        3: { "f2": 2, "f4": 1 },
-    });
+    const [currentSessionId, setCurrentSessionId] = useState<number>(0);
 
     const selectedTable = tables.find(t => t.table_id === selectedTableId) || null;
-    const currentTableOrders = selectedTableId ? (orders[selectedTableId] || {}) : {};
 
     const { updateMenus } = useCartContext()
 
     useEffect(() => {
         handleGetTables();
     }, []);
-
-    const handleClearTable = (tableId: number) => {
-        setTables(prev => prev.map(t => {
-            if (t.table_id === tableId) {
-                return { ...t, status: "available", startTime: undefined, customerCount: undefined };
-            }
-            return t;
-        }));
-        setOrders(prev => {
-            const newOrders = { ...prev };
-            delete newOrders[tableId];
-            return newOrders;
-        });
-    };
 
     const calculateTimePlayTotal = () => {
         if (!selectedTable || selectedTable.status === "available") return 0;
@@ -93,7 +74,7 @@ export function HomePage() {
         }
     }
 
-    const handleOpenTable = async () => {
+    const handleOpenSession = async () => {
         if (!selectedTableId) return;
 
         const customerCount = tempCustomerCount || 1; //default =1
@@ -104,6 +85,8 @@ export function HomePage() {
             if (res.success && res.response) {
                 const newSessionId = res.response.session_id;
                 const startTime = getCurrentTimeString();
+
+                setCurrentSessionId(res.response.data.newSession.session_id)
 
                 setTables(prev => prev.map(t => {
                     if (t.table_id === selectedTableId) {
@@ -118,7 +101,7 @@ export function HomePage() {
                     return t;
                 }));
                 setTempCustomerCount(1);
-                console.log(res)
+                console.log(res.response.message)
             } else {
                 console.error("Failed to create session:", res.error);
                 alert("ไม่สามารถเปิดโต๊ะได้ กรุณาลองใหม่อีกครั้ง");
@@ -274,31 +257,12 @@ export function HomePage() {
                                 ) : (
                                     <button
                                         onClick={() => {
-                                            handleOpenTable();
+                                            handleOpenSession();
                                         }}
                                         className="w-full py-3 rounded-xl text-xs font-bold mb-6 bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition-all uppercase tracking-wider"
                                     >
                                         ➕ เปิดโต๊ะจองใหม่ (ระบุจำนวนคน)
                                     </button>
-                                )}
-
-                                {/* รายการออเดอร์ปัจจุบันที่สั่งไปแล้วของโต๊ะนี้ */}
-                                {selectedTable.status === "occupied" && Object.keys(currentTableOrders).length > 0 && (
-                                    <div className="mb-4">
-                                        <h4 className="text-[10px] font-bold uppercase text-slate-400 tracking-wider mb-2">📋 รายการที่สั่งแล้ว</h4>
-                                        <div className="max-h-[120px] overflow-y-auto flex flex-col gap-1.5 pr-1">
-                                            {/* {Object.entries(currentTableOrders).map(([foodId, qty]) => {
-                                                const food = FOOD_MENU.find(f => f.id === foodId);
-                                                if (!food) return null;
-                                                return (
-                                                    <div key={foodId} className="flex justify-between items-center text-xs bg-slate-950/60 border border-slate-800/40 p-2 rounded-lg">
-                                                        <span className="text-slate-200">{food.emoji} {food.name}</span>
-                                                        <span className="font-mono text-amber-500 font-bold">x{qty}</span>
-                                                    </div>
-                                                );
-                                            })} */}
-                                        </div>
-                                    </div>
                                 )}
                             </div>
 
@@ -327,14 +291,18 @@ export function HomePage() {
                                 <div className="flex flex-col gap-2">
                                     <button
                                         disabled={selectedTable.status === "available"}
-                                        onClick={() => handleClearTable(selectedTable.table_id)}
+                                        onClick={() => {
+                                            //handleClearTable(selectedTable.table_id)
+                                        }}
                                         className="w-full bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 disabled:from-slate-800 disabled:to-slate-800 text-slate-950 font-bold py-3.5 rounded-2xl text-center flex justify-center items-center gap-2 transition-all shadow-lg shadow-amber-500/10 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                                     >
                                         🧾 เช็คบิลอาหาร & ปิดโต๊ะ
                                     </button>
                                     {selectedTable.status === "occupied" && (
                                         <button
-                                            onClick={() => handleClearTable(selectedTable.table_id)}
+                                            onClick={() => {
+                                                //handleClearTable(selectedTable.table_id)
+                                            }}
                                             className="w-full py-2 rounded-xl text-[10px] font-bold bg-transparent text-rose-400 hover:text-rose-300 border border-rose-500/20 hover:border-rose-500/40 transition-all uppercase tracking-wider"
                                         >
                                             ❌ ยกเลิกการจองโต๊ะนี้
@@ -355,6 +323,7 @@ export function HomePage() {
             </main>
 
             <SideBar
+                sessionId={currentSessionId}
                 isOpen={openSideBar}
                 mode={sidebarMode}
                 onClose={handleCloseSidebar}
