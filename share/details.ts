@@ -49,3 +49,12 @@ export type OrderItemPayload = {
     quantity: number;
     unit_price: number;
 }
+
+export type SidebarMode = 'customer' | 'Food' | 'Drink' | null;
+
+export type SideBarProps = {
+    sessionId: number;
+    isOpen: boolean;
+    mode: SidebarMode;
+    onClose: () => void;
+};
