@@ -21,12 +21,12 @@ exports.getTables = async (req, res) => {
 
 exports.createOrders = async (req, res) => {
 
-    const { session_id, product_id, quantity, unit_price } = req.body;
+    const { session_id, items } = req.body;
 
-    if (!session_id || !product_id || !quantity || !unit_price) {
+    if (!session_id || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({
             status: "error",
-            message: "Missing required fields (session_id, product_id, quantity, unit_price)"
+            message: "Invalid payload: session_id and non-empty items array are required"
         });
     }
 
@@ -50,10 +50,14 @@ exports.createOrders = async (req, res) => {
             VALUES ($1, $2, $3, $4)
         `;
 
-        await client.query(
-            itemSql,
-            [newOrderId, product_id, quantity, unit_price]
-        );
+        for (const item of items) {
+            await client.query(itemSql, [
+                newOrderId,
+                item.product_id,
+                item.quantity,
+                item.unit_price
+            ]);
+        }
 
         // ยืนยันการบันทึกข้อมูลทั้งหมดลง Database
         await client.query('COMMIT');
@@ -61,7 +65,7 @@ exports.createOrders = async (req, res) => {
         // 4. ส่ง Response ตอบกลับ
         res.status(201).json({
             status: "success",
-            message: "Add All Orders successfully",
+            message: "Order created successfully",
             data: { order_id: newOrderId }
         });
 
@@ -126,3 +130,56 @@ exports.createSessions = async (req, res) => {
         client.release();
     }
 }
+
+exports.closedSession = async (req, res) => {
+    const { session_id } = req.body;
+
+    if (!session_id) {
+        return res.status(400).json({
+            status: "error",
+            message: "Missing required fields (session_id)"
+        });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // อัปเดต status เป็น 'closed' และลง end_time ปัจจุบัน
+        const cancelSql = `
+            UPDATE sessions 
+            SET status = 'closed', end_time = CURRENT_TIMESTAMP 
+            WHERE session_id = $1 
+            RETURNING *;
+        `;
+        const result = await client.query(cancelSql, [session_id]);
+
+        if (result.rowCount === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({
+                status: "error",
+                message: "Session not found"
+            });
+        }
+
+        await client.query('COMMIT');
+
+        res.status(200).json({
+            status: "success",
+            message: "Session closed successfully",
+            data: result.rows[0]
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error("Cancel Session Error:", error);
+        res.status(500).json({
+            status: "error",
+            message: "Failed to cancel session",
+            error: error.message
+        });
+    } finally {
+        client.release();
+    }
+};
+

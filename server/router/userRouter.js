@@ -17,5 +17,6 @@ userRouter.route('/order')
 
 userRouter.route('/session')
     .post(userService.createSessions)
+    .put(userService.closedSession)
 
 module.exports = userRouter;
