@@ -34,3 +34,18 @@ export interface Table {
     table_number: string;
     capacity: number;
 }
+
+export type MenuModeListProps = {
+    sessionId: number;
+    mode: 'Food' | 'Drink';
+    menus: Menu[];
+    tempOrders: Record<number, number>;
+    onUpdateOrderQty?: (productId: number, delta: number) => void;
+    onSuccess?: () => void;
+}
+
+export type OrderItemPayload = {
+    product_id: number;
+    quantity: number;
+    unit_price: number;
+}
