@@ -183,3 +183,62 @@ exports.closedSession = async (req, res) => {
     }
 };
 
+exports.getOrdersBySessionId = async (req, res) => {
+    const { session_id } = req.params;
+
+    if (!session_id) {
+        return res.status(400).json({
+            status: "error",
+            message: "Missing required fields (session_id)"
+        });
+    }
+
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        // อัปเดต status เป็น 'closed' และลง end_time ปัจจุบัน
+        const sql = `
+            SELECT 
+                p.name AS product_name,
+                p.category,
+                SUM(oi.quantity)::INT AS quantity,
+                oi.unit_price
+            FROM orders o
+            JOIN order_items oi ON o.order_id = oi.order_id
+            JOIN products p ON oi.product_id = p.product_id
+            WHERE o.session_id = $1
+            GROUP BY p.product_id, p.name, p.category, oi.unit_price;
+        `;
+
+        const result = await client.query(sql, [session_id]);
+
+        if (result.rowCount === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({
+                status: "error",
+                message: "Session not found"
+            });
+        }
+
+        await client.query('COMMIT');
+
+        res.status(200).json({
+            status: "success",
+            message: "Get Orders successfully",
+            data: result.rows
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error("Get Orders by Session ID Error:", error);
+        res.status(500).json({
+            status: "error",
+            message: "Failed to cancel session",
+            error: error.message
+        });
+    } finally {
+        client.release();
+    }
+};

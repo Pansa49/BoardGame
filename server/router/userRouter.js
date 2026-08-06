@@ -19,4 +19,7 @@ userRouter.route('/session')
     .post(userService.createSessions)
     .put(userService.closedSession)
 
+userRouter.route('/session/:session_id')
+    .get(userService.getOrdersBySessionId)
+
 module.exports = userRouter;
