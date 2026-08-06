@@ -4,8 +4,6 @@ import { SideBar } from "../../components/SideBar";
 import { getMenus, getTables, createSessions, closedSession } from "../../api/fetchdata"
 import { useCartContext } from "../../hook/use-cart-context";
 
-const HOURLY_RATE_PER_PERSON = 50;
-
 export function HomePage() {
     const [tables, setTables] = useState<Table[]>([]);
     const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
@@ -21,12 +19,6 @@ export function HomePage() {
     useEffect(() => {
         handleGetTables();
     }, []);
-
-    const calculateTimePlayTotal = () => {
-        if (!selectedTable || selectedTable.status === "available") return 0;
-        const ppl = selectedTable.customerCount || 0;
-        return ppl * HOURLY_RATE_PER_PERSON;
-    };
 
     const getCurrentTimeString = () => {
         const currentTimeString = new Date().toLocaleTimeString('th-TH', {
@@ -192,125 +184,105 @@ export function HomePage() {
                 {/* --- ฝั่งขวา (ควบคุมคำสั่ง รายอาหาร เช็คบิล) --- */}
                 <aside className="w-full lg:w-[380px] bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between shadow-2xl">
                     {selectedTable ? (
-                        <div className="flex-1 flex flex-col h-full justify-between">
-                            <div>
-                                <div className="border-b border-slate-800 pb-4 mb-4">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <h3 className="text-lg font-extrabold text-white">รายละเอียด โต๊ะ {selectedTable.name}</h3>
-                                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border 
-                                            ${selectedTable.status === "occupied" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"}`}>
-                                            {selectedTable.status === "occupied" ? `🔴 เล่นอยู่ (${selectedTable.customerCount} คน)` : "🟢 โต๊ะว่าง"}
-                                        </span>
-                                    </div>
-                                    {selectedTable.status === "occupied" ? (
-                                        <p className="text-xs text-slate-400">เริ่มนับชั่วโมงเล่นตั้งแต่เวลา <span className="text-rose-400 font-bold">{selectedTable.startTime} น.</span></p>
-                                    ) : (
-                                        <p className="text-xs text-slate-400">กรุณากดปุ่มเพื่อเปิดจองและใส่จำนวนลูกค้า</p>
-                                    )}
+                        <div className="flex-1 flex flex-col h-full">
+                            {/* หัวข้อรายละเอียดโต๊ะ */}
+                            <div className="border-b border-slate-800 pb-4 mb-4">
+                                <div className="flex justify-between items-center mb-2">
+                                    <h3 className="text-lg font-extrabold text-white">รายละเอียด โต๊ะ {selectedTable.name}</h3>
+                                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold border 
+                        ${selectedTable.status === "occupied" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"}`}>
+                                        {selectedTable.status === "occupied" ? `🔴 เล่นอยู่ (${selectedTable.customerCount} คน)` : "🟢 โต๊ะว่าง"}
+                                    </span>
                                 </div>
-
-                                {/* ส่วนการจอง: ปรับปุ่มให้แสดงผลตามเงื่อนไขการจอง */}
                                 {selectedTable.status === "occupied" ? (
-                                    <div className="flex flex-col gap-3 mb-6">
+                                    <p className="text-xs text-slate-400">เริ่มนับชั่วโมงเล่นตั้งแต่เวลา <span className="text-rose-400 font-bold">{selectedTable.startTime} น.</span></p>
+                                ) : (
+                                    <p className="text-xs text-slate-400">กรุณากดปุ่มเพื่อเปิดจองและใส่จำนวนลูกค้า</p>
+                                )}
+                            </div>
+
+                            {selectedTable.status === "occupied" ? (
+                                <div className="flex-1 flex flex-col justify-between">
+                                    {/* เมนูปุ่มกดส่วนบน */}
+                                    <div className="flex flex-col gap-3">
                                         <div className="bg-slate-950 border border-slate-800/80 rounded-2xl p-4 flex flex-col items-center">
                                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">เวลาเริ่มเปิดโต๊ะ</label>
                                             <div className="flex items-center gap-4">
-
                                                 <span className="text-xl font-mono font-bold text-amber-400 text-center">
                                                     {selectedTable.startTime || "-"}
                                                 </span>
-
-                                                <span className="text-xl font-mono font-bold text-amber-400 text-center">
-                                                    asdasd
-                                                </span>
-
                                             </div>
                                         </div>
 
-                                        {/* ปุ่มสั่งอาหารแบบ Drawer สไลด์ (แสดงเมื่อจองแล้วเท่านั้น) */}
                                         <button
-                                            onClick={() => {
-                                                handleOpenSidebar('customer')
-                                            }}
+                                            onClick={() => handleOpenSidebar('customer')}
                                             className="w-full py-3 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10"
                                         >
                                             👥 เพิ่ม-ลด จำนวนลูกค้า
                                         </button>
                                         <button
                                             onClick={() => {
-                                                handleGetMenus()
-                                                handleOpenSidebar('Food')
+                                                handleGetMenus();
+                                                handleOpenSidebar('Food');
                                             }}
                                             className="w-full py-3 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10"
                                         >
                                             🍔 เปิดเมนูสั่งอาหาร
                                         </button>
                                         <button
-                                            onClick={() => {
-                                                handleOpenSidebar('Drink')
-                                            }}
+                                            onClick={() => handleOpenSidebar('Drink')}
                                             className="w-full py-3 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10"
                                         >
                                             🥤 สั่งเครื่องดื่ม
                                         </button>
                                     </div>
-                                ) : (
-                                    <button
-                                        onClick={() => {
-                                            handleOpenSession();
-                                        }}
-                                        className="w-full py-3 rounded-xl text-xs font-bold mb-6 bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition-all uppercase tracking-wider"
-                                    >
-                                        ➕ เปิดโต๊ะจองใหม่ (ระบุจำนวนคน)
-                                    </button>
-                                )}
-                            </div>
 
-                            <div>
-                                {/* รายการสรุปค่าใช้จ่าย */}
-                                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col gap-2 mb-4">
-                                    <div className="flex justify-between text-xs text-slate-400">
-                                        <span>ค่าเครื่องดื่ม & อาหาร</span>
-                                        <span className="font-bold text-slate-200">{"calculateFoodTotal()"} บาท</span>
-                                    </div>
-                                    <div className="flex justify-between text-xs text-slate-400">
-                                        <span>
-                                            ค่าชั่วโมงบอร์ดเกม ({selectedTable.customerCount || 0} คน x 50.-)
-                                        </span>
-                                        <span className="font-bold text-slate-200">{calculateTimePlayTotal()} บาท</span>
-                                    </div>
-                                    <div className="border-t border-slate-800 my-1 pt-2 flex justify-between text-sm font-extrabold text-white">
-                                        <span>ยอดรวมค่าโต๊ะทั้งหมด</span>
-                                        <span className="text-amber-400">
-                                            {"calculateFoodTotal()" + calculateTimePlayTotal()} บาท
-                                        </span>
+                                    {/* ส่วนสรุปค่าใช้จ่ายและปุ่มปิดโต๊ะ ดันลงล่างสุดด้วย mt-auto */}
+                                    <div className="mt-auto pt-6">
+                                        <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col gap-2 mb-4">
+                                            <div className="flex justify-between text-xs text-slate-400">
+                                                <span>ค่าเครื่องดื่ม & อาหาร</span>
+                                                <span className="font-bold text-slate-200">999 บาท</span>
+                                            </div>
+                                            <div className="flex justify-between text-xs text-slate-400">
+                                                <span>
+                                                    ค่าชั่วโมงบอร์ดเกม ({selectedTable.customerCount || 0} คน x 50.-)
+                                                </span>
+                                                <span className="font-bold text-slate-200">999 บาท</span>
+                                            </div>
+                                            <div className="border-t border-slate-800 my-1 pt-2 flex justify-between text-sm font-extrabold text-white">
+                                                <span>ยอดรวม</span>
+                                                <span className="text-amber-400">
+                                                    {selectedTable.status} บาท
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col gap-2">
+                                            <button
+                                                onClick={() => {/* handleClearTable */ }}
+                                                className="w-full bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 disabled:from-slate-800 disabled:to-slate-800 text-slate-950 font-bold py-3.5 rounded-2xl text-center flex justify-center items-center gap-2 transition-all shadow-lg shadow-amber-500/10 text-sm"
+                                            >
+                                                🧾 เช็คบิลอาหาร & ปิดโต๊ะ
+                                            </button>
+
+                                            <button
+                                                onClick={() => {/* handleClearTable */ }}
+                                                className="w-full py-2 rounded-xl text-[10px] font-bold bg-transparent text-rose-400 hover:text-rose-300 border border-rose-500/20 hover:border-rose-500/40 transition-all uppercase tracking-wider"
+                                            >
+                                                ❌ ยกเลิกการจองโต๊ะนี้
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-
-                                {/* ปุ่มเคลียร์โต๊ะ / เช็คบิล */}
-                                <div className="flex flex-col gap-2">
-                                    <button
-                                        disabled={selectedTable.status === "available"}
-                                        onClick={() => {
-                                            //handleClearTable(selectedTable.table_id)
-                                        }}
-                                        className="w-full bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 disabled:from-slate-800 disabled:to-slate-800 text-slate-950 font-bold py-3.5 rounded-2xl text-center flex justify-center items-center gap-2 transition-all shadow-lg shadow-amber-500/10 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                                    >
-                                        🧾 เช็คบิลอาหาร & ปิดโต๊ะ
-                                    </button>
-                                    {selectedTable.status === "occupied" && (
-                                        <button
-                                            onClick={() => {
-                                                //handleClearTable(selectedTable.table_id)
-                                            }}
-                                            className="w-full py-2 rounded-xl text-[10px] font-bold bg-transparent text-rose-400 hover:text-rose-300 border border-rose-500/20 hover:border-rose-500/40 transition-all uppercase tracking-wider"
-                                        >
-                                            ❌ ยกเลิกการจองโต๊ะนี้
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-
+                            ) : (
+                                <button
+                                    onClick={handleOpenSession}
+                                    className="w-full py-3 rounded-xl text-xs font-bold my-auto bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition-all uppercase tracking-wider"
+                                >
+                                    ➕ เปิดโต๊ะ
+                                </button>
+                            )}
                         </div>
                     ) : (
                         <div className="h-full flex flex-col items-center justify-center text-center text-slate-500 py-20">
