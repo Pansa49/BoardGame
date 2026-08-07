@@ -50,7 +50,7 @@ export type OrderItemPayload = {
     unit_price: number;
 }
 
-export type SidebarMode = 'customer' | 'Food' | 'Drink' | 'Order' | null;
+export type SidebarMode = 'customer' | 'Food' | 'Drink' | 'Order' | 'Bill' | null;
 
 export type SideBarProps = {
     sessionId: number;

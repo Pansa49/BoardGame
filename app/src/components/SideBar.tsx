@@ -2,14 +2,6 @@ import { useCartContext } from "../hook/use-cart-context";
 import { MenuModeList } from './SideBarModeList/MenuModeList';
 import { type SideBarProps } from "../../../share/details";
 import { OrderDetail } from "./SideBarModeList/OrderDetailModeList";
-// export type SidebarMode = 'customer' | 'Food' | 'Drink' | null;
-
-// type sideBarProps = {
-//     sessionId: number;
-//     isOpen: boolean;
-//     mode: SidebarMode;
-//     onClose: () => void;
-// };
 
 export function SideBar({ sessionId, isOpen, mode, onClose }: SideBarProps) {
     const { menus, tempOrders, updateOrderQty } = useCartContext();

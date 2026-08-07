@@ -1,7 +1,7 @@
 export function CustomerModeList() {
     return (
         <div>
-            customer
+            customer Mode
         </div>
     )
 }
