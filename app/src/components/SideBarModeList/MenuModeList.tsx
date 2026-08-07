@@ -20,7 +20,7 @@ export function MenuModeList({ sessionId, mode, menus, tempOrders, onUpdateOrder
         return sum + qty * Number(item.price);
     }, 0);
 
-    // 3. ฟังก์ชันบันทึกรายการสั่งซื้อ
+    // 3. fn บันทึกรายการสั่งซื้อลง DB
     const handleSubmitOrders = async () => {
         // 1. แปลงรายการสินค้าที่เลือก (qty > 0) ให้เป็น Array ตามที่ Backend ต้องการ
         const orderItems: OrderItemPayload[] = filteredMenus
