@@ -1,4 +1,26 @@
-export function OrderDetail({ sessionId }: { sessionId: number }) {
+import { useEffect, useState } from "react";
+import { getOrderBySessionId } from '../../api/fetchdata'
+
+export function OrderDetailModeList({ sessionId }: { sessionId: number }) {
+
+    const [orderDetail, setOrderDetail] = useState();
+
+    useEffect(() => {
+        const getOrderDetails = async () => {
+            try {
+                const data = await getOrderBySessionId(sessionId)
+                setOrderDetail(data);
+                console.log('OrderDetail : ', data);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        if (sessionId) {
+            getOrderDetails();
+        }
+    }, []);
+
     return (
         <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col gap-2 mb-4">
             <div className="flex justify-between text-xs text-slate-400">
