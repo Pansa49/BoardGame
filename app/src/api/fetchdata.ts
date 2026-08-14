@@ -116,4 +116,14 @@ export async function createOrders(session_id: number, items: OrderItemPayload[]
     }
 }
 
+export async function getOrderBySessionId(session_id: number) {
+    const response = await fetch(`${local_api_url}/session/${session_id}`);
+
+    if (!response.ok) {
+        throw new Error(`เกิดข้อผิดพลาดในการดึงข้อมูล: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+}
 
