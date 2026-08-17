@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Table, SidebarMode } from '../../../../share/details'
 import { SideBar } from "../../components/SideBar";
-import { getMenus, getTables, createSessions, closedSession } from "../../api/fetchdata"
+import { getMenus, getTables, createSessions } from "../../api/fetchdata"
 import { useCartContext } from "../../hook/use-cart-context";
 
 export function HomePage() {
@@ -10,11 +10,10 @@ export function HomePage() {
     const [tempCustomerCount, setTempCustomerCount] = useState<number>(1);
     const [openSideBar, setOpenSideBar] = useState(false);
     const [sidebarMode, setSidebarMode] = useState<SidebarMode>(null);
-    const [currentSessionId, setCurrentSessionId] = useState<number>(0);
 
     const selectedTable = tables.find(t => t.table_id === selectedTableId) || null;
 
-    const { updateMenus } = useCartContext()
+    const { updateMenus, updateSessionId } = useCartContext()
 
     useEffect(() => {
         handleGetTables();
@@ -56,7 +55,6 @@ export function HomePage() {
             const tables = res.data;
 
             setTables(tables);
-            // updatedTables(tables);
 
             if (tables.length > 0 && !selectedTableId) {
                 setSelectedTableId(tables[0].table_id);
@@ -75,10 +73,10 @@ export function HomePage() {
             const res = await createSessions(selectedTableId, customerCount)
 
             if (res.success && res.response) {
-                const newSessionId = res.response.session_id;
+                const newSessionId = res.response.data.newSession.session_id;
                 const startTime = getCurrentTimeString();
 
-                setCurrentSessionId(res.response.data.newSession.session_id)
+                updateSessionId(newSessionId)
 
                 setTables(prev => prev.map(t => {
                     if (t.table_id === selectedTableId) {
@@ -136,7 +134,13 @@ export function HomePage() {
 
                                 <button
                                     key={table.table_id}
-                                    onClick={() => setSelectedTableId(table.table_id)}
+                                    onClick={() => {
+                                        setSelectedTableId(table.table_id);
+                                        if (table.status === "occupied") {
+                                            updateSessionId(table.sessionId ? table.sessionId : 0);
+                                            console.log(table.sessionId);
+                                        }
+                                    }}
                                     className={`relative rounded-2xl border-2 p-5 flex flex-col items-center justify-between aspect-square transition-all duration-300
         hover:border-yellow-400 hover:shadow-lg hover:shadow-yellow-400/20
         ${selectedTableId === table.table_id ? 'ring-4 ring-amber-500/40 border-amber-400' : 'border-slate-800'}
@@ -230,7 +234,10 @@ export function HomePage() {
                                             🍔 เปิดเมนูสั่งอาหาร
                                         </button>
                                         <button
-                                            onClick={() => handleOpenSidebar('Drink')}
+                                            onClick={() => {
+                                                handleGetMenus();
+                                                handleOpenSidebar('Drink')
+                                            }}
                                             className="w-full py-3 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10"
                                         >
                                             🥤 สั่งเครื่องดื่ม
@@ -239,7 +246,9 @@ export function HomePage() {
 
                                     {/* ส่วนสรุปค่าใช้จ่ายและปุ่มปิดโต๊ะ ดันลงล่างสุดด้วย mt-auto */}
                                     <div className="mt-auto pt-6">
-                                        <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col gap-2 mb-4">
+                                        <div
+                                            className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col gap-2 mb-4"
+                                            onClick={() => handleOpenSidebar('Order')}>
                                             <div className="flex justify-between text-xs text-slate-400">
                                                 <span>ค่าเครื่องดื่ม & อาหาร</span>
                                                 <span className="font-bold text-slate-200">999 บาท</span>
@@ -260,14 +269,14 @@ export function HomePage() {
 
                                         <div className="flex flex-col gap-2">
                                             <button
-                                                onClick={() => {/* handleClearTable */ }}
+                                                onClick={() => handleOpenSidebar('Bill')}
                                                 className="w-full bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 disabled:from-slate-800 disabled:to-slate-800 text-slate-950 font-bold py-3.5 rounded-2xl text-center flex justify-center items-center gap-2 transition-all shadow-lg shadow-amber-500/10 text-sm"
                                             >
                                                 🧾 เช็คบิลอาหาร & ปิดโต๊ะ
                                             </button>
 
                                             <button
-                                                onClick={() => {/* handleClearTable */ }}
+                                                onClick={() => handleOpenSidebar('Bill')}
                                                 className="w-full py-2 rounded-xl text-[10px] font-bold bg-transparent text-rose-400 hover:text-rose-300 border border-rose-500/20 hover:border-rose-500/40 transition-all uppercase tracking-wider"
                                             >
                                                 ❌ ยกเลิกการจองโต๊ะนี้
@@ -295,7 +304,6 @@ export function HomePage() {
             </main>
 
             <SideBar
-                sessionId={currentSessionId}
                 isOpen={openSideBar}
                 mode={sidebarMode}
                 onClose={handleCloseSidebar}

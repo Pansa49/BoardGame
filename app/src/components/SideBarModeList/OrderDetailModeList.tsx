@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getOrderBySessionId } from '../../api/fetchdata'
+import { useCartContext } from "../../hook/use-cart-context";
 
 interface OrderItem {
     product_name: string;
@@ -8,14 +9,16 @@ interface OrderItem {
     unit_price: number;
 }
 
-export function OrderDetailModeList({ sessionId }: { sessionId: number }) {
+export function OrderDetailModeList() {
 
     const [orderDetail, setOrderDetail] = useState<OrderItem[]>([]);
+    const { currentSessionId } = useCartContext();
 
     useEffect(() => {
         const getOrderDetails = async () => {
             try {
-                const response = await getOrderBySessionId(sessionId)
+                if (!currentSessionId) return;
+                const response = await getOrderBySessionId(currentSessionId)
                 setOrderDetail(response.data);
                 console.log('OrderDetail : ', response.data);
             } catch (error) {
@@ -23,7 +26,7 @@ export function OrderDetailModeList({ sessionId }: { sessionId: number }) {
             }
         }
 
-        if (sessionId) {
+        if (currentSessionId) {
             getOrderDetails();
         }
     }, []);

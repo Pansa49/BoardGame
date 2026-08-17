@@ -3,9 +3,9 @@ import type { MenuModeListProps, OrderItemPayload } from '../../../../share/deta
 import { createOrders } from '../../api/fetchdata';
 import { useCartContext } from '../../hook/use-cart-context';
 
-export function MenuModeList({ sessionId, mode, menus, tempOrders, onUpdateOrderQty, onSuccess, }: MenuModeListProps) {
+export function MenuModeList({ mode, menus, tempOrders, onUpdateOrderQty, onSuccess, }: MenuModeListProps) {
     const [isLoading, setIsLoading] = useState(false);
-    const { resetTempOrders } = useCartContext();
+    const { resetTempOrders, currentSessionId } = useCartContext();
 
     // 1. กรองเมนูตาม Mode (Food/Drink)
     const filteredMenus = menus.filter((item) => {
@@ -35,7 +35,11 @@ export function MenuModeList({ sessionId, mode, menus, tempOrders, onUpdateOrder
 
         try {
             // 2. ยิง API เพียงครั้งเดียว ส่ง session_id และ array ของสินค้าทั้งหมดไปพร้อมกัน
-            const res = await createOrders(sessionId, orderItems);
+            if (!currentSessionId) {
+                alert("ไม่พบข้อมูลเซสชัน กรุณาเลือกโต๊ะใหม่อีกครั้ง");
+                return
+            }
+            const res = await createOrders(currentSessionId, orderItems);
 
             if (res.success) {
                 resetTempOrders();

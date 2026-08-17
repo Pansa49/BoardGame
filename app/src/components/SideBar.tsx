@@ -5,10 +5,12 @@ import { OrderDetailModeList } from "./SideBarModeList/OrderDetailModeList";
 import { CustomerModeList } from "./SideBarModeList/CustomerModeList";
 import { BillModelist } from "./SideBarModeList/BillModeList";
 
-export function SideBar({ sessionId, isOpen, mode, onClose }: SideBarProps) {
-    const { menus, tempOrders, updateOrderQty } = useCartContext();
+export function SideBar({ isOpen, mode, onClose }: SideBarProps) {
+    const { menus, tempOrders, currentSessionId, updateOrderQty } = useCartContext();
 
     if (!isOpen || !mode) return null;
+
+    console.log(currentSessionId);
 
     return (
         <div id="sidebar-container">
@@ -46,7 +48,6 @@ export function SideBar({ sessionId, isOpen, mode, onClose }: SideBarProps) {
 
                             {(mode === 'Food' || mode === 'Drink') && (
                                 < MenuModeList
-                                    sessionId={sessionId}
                                     mode={mode}
                                     menus={menus}
                                     tempOrders={tempOrders}
@@ -61,7 +62,6 @@ export function SideBar({ sessionId, isOpen, mode, onClose }: SideBarProps) {
 
                             {(mode === 'Order') && (
                                 < OrderDetailModeList
-                                    sessionId={sessionId}
                                 />
                             )}
 

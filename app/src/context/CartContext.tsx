@@ -4,9 +4,11 @@ import type { Menu } from '../../../share/details'
 type CartContextType = {
     menus: Menu[];
     tempOrders: Record<number, number>;
+    currentSessionId: number | null;
 
     // fn
     updateMenus: (menu: Menu[]) => void;
+    updateSessionId: (sessionId: number | null) => void;
     updateOrderQty: (productId: number, delta: number) => void;
     resetTempOrders: () => void;
 };
@@ -16,12 +18,17 @@ export const CartContext = createContext<CartContextType | null>(null);
 export function CartProvider({ children }: { children: React.ReactNode }) {
 
     const [menus, setMenus] = useState<Menu[]>([]);
+    const [currentSessionId, setCurrentSessionId] = useState<number | null>(0);
 
     /* State สำหรับเก็บจำนวนสินค้าชั่วคราว ย่อจาก = useState<{ [key: number]: number }>({});*/
     const [tempOrders, setTempOrders] = useState<Record<number, number>>({})
 
     const updateMenus = (menu: Menu[]) => {
         setMenus(menu)
+    }
+
+    const updateSessionId = (sessionId: number | null) => {
+        setCurrentSessionId(sessionId);
     }
 
     const updateOrderQty = (productId: number, delta: number) => {
@@ -47,8 +54,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return (
         <CartContext.Provider
             value={{
-                menus,
-                updateMenus, tempOrders, updateOrderQty, resetTempOrders,
+                menus, currentSessionId,
+                updateMenus, updateSessionId, tempOrders, updateOrderQty, resetTempOrders,
             }}
         >
             {children}
