@@ -4,6 +4,7 @@ export interface Table {
     status: "available" | "occupied";
     startTime?: string;
     customerCount?: number;
+    sessionId?: number;
 }
 
 export interface FoodItem {
@@ -36,7 +37,6 @@ export interface Table {
 }
 
 export type MenuModeListProps = {
-    sessionId: number;
     mode: 'Food' | 'Drink';
     menus: Menu[];
     tempOrders: Record<number, number>;
@@ -53,7 +53,6 @@ export type OrderItemPayload = {
 export type SidebarMode = 'customer' | 'Food' | 'Drink' | 'Order' | 'Bill' | null;
 
 export type SideBarProps = {
-    sessionId: number;
     isOpen: boolean;
     mode: SidebarMode;
     onClose: () => void;
