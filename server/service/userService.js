@@ -242,3 +242,55 @@ exports.getOrdersBySessionId = async (req, res) => {
         client.release();
     }
 };
+
+exports.getCustomerCountBySessionId = async (req, res) => {
+    const { session_id } = req.params;
+
+    if (!session_id) {
+        return res.status(400).json({
+            status: "error",
+            message: "Missing required fields (session_id)"
+        });
+    }
+
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        const sql = `
+            SELECT customer_count , start_time, end_time, play_price
+            FROM sessions 
+            WHERE session_id = $1;
+        `;
+
+        const result = await client.query(sql, [session_id]);
+
+        if (result.rowCount === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({
+                status: "error",
+                message: "Session not found"
+            });
+        }
+
+        await client.query('COMMIT');
+
+        res.status(200).json({
+            status: "success",
+            message: "Get Orders successfully",
+            data: result.rows
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error("Get Orders by Session ID Error:", error);
+        res.status(500).json({
+            status: "error",
+            message: "Failed to cancel session",
+            error: error.message
+        });
+    } finally {
+        client.release();
+    }
+};
