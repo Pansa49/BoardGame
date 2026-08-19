@@ -1,23 +1,34 @@
 import { useState } from "react";
+import { updateCustomerNumBySessionId } from "../../api/fetchdata";
+import { useCartContext } from "../../hook/use-cart-context";
 
 interface CustomerModeListProps {
-    pricePerPerson?: number; // ราคาต่อหัว (เช่น 100 บาท)
     onCustomerCountChange?: (count: number) => void;
 }
 
-export function CustomerModeList({
-    pricePerPerson = 100,
-    onCustomerCountChange
-}: CustomerModeListProps) {
+export function CustomerModeList({ onCustomerCountChange }: CustomerModeListProps) {
+
+    const { currentSessionId } = useCartContext();
     const [customerCount, setCustomerCount] = useState<number>(1);
 
     const handleUpdateCustomer = (delta: number) => {
-        const newCount = Math.max(1, customerCount + delta); // ไม่ให้ต่ำกว่า 1 คน
+        const newCount = Math.max(0, customerCount + delta); // ไม่ให้ต่ำกว่า 1 คน
         setCustomerCount(newCount);
         onCustomerCountChange?.(newCount);
     };
 
-    const totalPlayPrice = customerCount * pricePerPerson;
+    const handleClick = async () => {
+        console.log(customerCount)
+        if (!currentSessionId) {
+            alert("ไม่พบข้อมูลเซสชัน กรุณาเลือกโต๊ะใหม่อีกครั้ง");
+            return
+        }
+        const res = await updateCustomerNumBySessionId(currentSessionId, customerCount)
+
+        if (res.success) {
+            setCustomerCount(0);
+        }
+    }
 
     return (
         <div className="flex flex-col gap-3 w-full p-3 bg-slate-900 rounded-xl border border-slate-800">
@@ -51,19 +62,14 @@ export function CustomerModeList({
                 </div>
             </div>
 
-            {/* 2. แถบสีเหลืองสรุปราคา (แสดงผลเมื่อมีการระบุจำนวนลูกค้า) */}
-            <div className="flex items-center justify-between px-3 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg animate-fade-in">
-                <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                    <span className="text-xs font-medium text-amber-300">
-                        ค่าเล่น ({customerCount} ท่าน × ฿{pricePerPerson}):
-                    </span>
-                </div>
-                <span className="text-sm font-bold font-mono text-amber-400">
-                    ฿{totalPlayPrice.toLocaleString()}
-                </span>
-            </div>
-
+            <button
+                type="button"
+                onClick={handleClick}
+                disabled={customerCount === 0}
+                className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-slate-950 font-bold py-3.5 rounded-xl text-center text-sm shadow-lg transition-colors flex items-center justify-center gap-2"
+            >
+                เสร็จสิ้น / บันทึกรายการ
+            </button>
         </div>
     );
 }
