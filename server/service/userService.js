@@ -294,3 +294,47 @@ exports.getCustomerCountBySessionId = async (req, res) => {
         client.release();
     }
 };
+
+exports.updateCustomerCountBySessionId = async (req, res) => {
+    const { session_id } = req.params;
+    const { customer_count } = req.body;
+
+    if (!session_id || customer_count === undefined) {
+        return res.status(400).json({
+            status: "error",
+            message: "Missing required fields (session_id or customer_count)"
+        });
+    }
+
+    try {
+        const sql = `
+            UPDATE sessions 
+            SET customer_count = $1 
+            WHERE session_id = $2
+            RETURNING *;
+        `;
+
+        const result = await pool.query(sql, [customer_count, session_id]);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "Session not found"
+            });
+        }
+
+        res.status(200).json({
+            status: "success",
+            message: "Updated customer count successfully",
+            data: result.rows
+        });
+
+    } catch (error) {
+        console.error("Update Customer Count Error:", error);
+        res.status(500).json({
+            status: "error",
+            message: "Failed to update customer count",
+            error: error.message
+        });
+    }
+};

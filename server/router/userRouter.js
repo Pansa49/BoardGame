@@ -24,5 +24,6 @@ userRouter.route('/session/:session_id/orders')
 
 userRouter.route('/session/:session_id/customer-count')
     .get(userService.getCustomerCountBySessionId)
+    .put(userService.updateCustomerCountBySessionId)
 
 module.exports = userRouter;
