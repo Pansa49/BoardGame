@@ -134,4 +134,30 @@ export async function getCustomerNumBySessionId(session_id: number) {
     return data;
 }
 
+export async function updateCustomerNumBySessionId(session_id: number, value: number) {
+    try {
+        const data = await fetch(`${local_api_url}/session/${session_id}/customer-count`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                customer_count: value
+            }),
+        });
 
+        if (!data.ok) {
+            throw new Error(`HTTP error! status: ${data.status}`);
+        }
+
+        const response = await data.json();
+        return {
+            success: true,
+            response: response
+        };
+
+    } catch (error) {
+        console.error("Error updating customer count:", error);
+        return { success: false, error };
+    }
+}
