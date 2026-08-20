@@ -100,8 +100,8 @@ exports.createSessions = async (req, res) => {
         await client.query('BEGIN');
 
         const createSessionSql = `
-           INSERT INTO sessions (table_id, customer_count) 
-            VALUES ($1, $2) 
+           INSERT INTO sessions (table_id, customer_count,play_price) 
+            VALUES ($1, $2,50) 
             RETURNING *;
         `;
 
