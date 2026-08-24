@@ -9,12 +9,23 @@ interface OrderItem {
     unit_price: number;
 }
 
+interface Bill {
+    customer_count: number;
+    play_price: number;
+    order: string | null;
+    price: number;
+    total_price: number;
+}
+
 export function OrderDetailModeList() {
 
     const [orderDetail, setOrderDetail] = useState<OrderItem[]>([]);
     const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
     const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
-    const [customerCount, setCustomerCount] = useState<number>(1); // 🟢 เพิ่มใหม่: จำนวนลูกค้า (เริ่มต้นที่ 1 คน)
+    const [customerCount, setCustomerCount] = useState<number>(1);
+    const [totalPrice, setTotalPrice] = useState<number>(0);
+    const [bill, setBill] = useState<Bill[]>([]);
+
     const { currentSessionId } = useCartContext();
 
     useEffect(() => {
@@ -24,17 +35,36 @@ export function OrderDetailModeList() {
             try {
                 // ยิง API พร้อมกัน 2 ตัว
                 const [orderRes, customerRes] = await Promise.all([
-                    getOrderBySessionId(currentSessionId),
-                    getCustomerNumBySessionId(currentSessionId)
+                    getOrderBySessionId(currentSessionId).catch(() => ({ data: [] })),
+                    getCustomerNumBySessionId(currentSessionId).catch(() => ({ data: [] }))
                 ]);
 
-                const count = customerRes.data?.[0]?.customer_count ?? 1;
+                const customerData = customerRes?.data?.[0];
 
-                setOrderDetail(orderRes.data);
-                setCustomerCount(count);
+                if (customerData) {
+                    const count = customerData.customer_count ?? 1;
+                    const playPrice = Number(customerData.play_price ?? 0);
+                    const startTime = customerData.start_time ?? 0;
+                    const endTime = customerData.end_time ?? 0;
 
-                console.log(orderRes.data);
-                console.log(count)
+                    const duration = Math.max(0, endTime - startTime);
+                    const total = count * playPrice * duration;
+
+                    console.log("startTime : ", startTime)
+                    console.log("endTime : ", endTime)
+
+                    console.log("count : ", count)
+                    console.log("playPrice : ", playPrice)
+                    console.log("duration : ", duration)
+
+                    console.log("total : ", total)
+
+                    setCustomerCount(count);
+                    setTotalPrice(total);
+                }
+
+                setOrderDetail(orderRes?.data || []);
+
             } catch (error) {
                 console.error('Error fetching session data:', error);
             }
@@ -42,6 +72,44 @@ export function OrderDetailModeList() {
 
         fetchSessionData();
     }, [currentSessionId]);
+
+    useEffect(() => {
+        if (selectedCustomers.length === 0) {
+            setBill([]);
+            return;
+        }
+
+        const activeCustomerCount = selectedCustomers.length;
+
+        if (selectedOrders.length === 0) {
+            setBill([
+                {
+                    customer_count: activeCustomerCount,
+                    play_price: totalPrice,
+                    order: null,
+                    price: 0,
+                    total_price: 0
+                }
+            ]);
+            return;
+        }
+
+        const selectedItems = selectedOrders.map((index) => orderDetail[index]).filter(Boolean);
+
+        const grandTotalSelected = selectedItems.reduce(
+            (sum, item) => sum + (item.unit_price || 0) * item.quantity, 0
+        );
+
+        const calculatedBill: Bill[] = selectedItems.map((item) => ({
+            customer_count: activeCustomerCount,
+            play_price: totalPrice,
+            order: item.product_name,
+            price: (item.unit_price || 0) * item.quantity,
+            total_price: grandTotalSelected
+        }));
+
+        setBill(calculatedBill);
+    }, [selectedOrders, selectedCustomers, orderDetail]);
 
     const handleToggleSelectOrder = (index: number) => {
         setSelectedOrders((prev) =>
@@ -59,31 +127,11 @@ export function OrderDetailModeList() {
         );
     };
 
-    const calTotalPrice = () => {
-        let total = 0;
-        orderDetail.forEach((item) => {
-            const price = item.unit_price || 0;
-            total += price * item.quantity;
-        });
-
-        return total;
+    const handleClickCreateBill = async () => {
+        // console.log("State customer:", selectedCustomers);
+        console.log("bill :", bill);
     }
 
-    const calSelectedTotalPrice = () => {
-        return selectedOrders.reduce((total, index) => {
-            const item = orderDetail[index];
-            return total + (item ? (item.unit_price || 0) * item.quantity : 0);
-        }, 0);
-    };
-
-    // 🟢 เพิ่มใหม่: คำนวณยอดหารต่อคน (ถ้ามีการเลือกรายการจะใช้อยอดรายการที่เลือก ถ้าไม่มีจะใช้อยอดรวมทั้งหมด)
-    const activeTotal = selectedOrders.length > 0 ? calSelectedTotalPrice() : calTotalPrice();
-
-    // 🟢 คำนวณจำนวนคนที่หาร (เลือกรายคน หรือ จำนวนคนทั้งหมด)
-    const activeCustomerCount = selectedCustomers.length > 0 ? selectedCustomers.length : customerCount;
-
-    // 🟢 คำนวณยอดที่ต้องจ่ายต่อคน
-    const pricePerPerson = activeCustomerCount > 0 ? (activeTotal / activeCustomerCount).toFixed(2) : "0.00";
 
     return (
         <div id="bill-container" className="flex flex-col gap-4">
@@ -149,34 +197,16 @@ export function OrderDetailModeList() {
                         })}
                     </div>
                 </div>
-
-                <div className="border-t border-slate-800 my-1 pt-2 flex flex-col gap-1 text-sm font-extrabold text-white">
-                    {selectedOrders.length > 0 && (
-                        <div className="flex justify-between text-xs text-emerald-400">
-                            <span>ยอดรวมที่เลือก ({selectedOrders.length} รายการ)</span>
-                            <span>{calSelectedTotalPrice()} บาท</span>
-                        </div>
-                    )}
-
-                    <div className="flex justify-between">
-                        <span>ยอดรวมทั้งหมด</span>
-                        <span className="text-amber-400">
-                            {calTotalPrice()} บาท
-                        </span>
-                    </div>
-                </div>
             </div>
 
-            <div className="bg-emerald-950/40 border border-emerald-800/50 p-4 rounded-xl flex justify-between items-center text-emerald-300">
-                <div>
-                    <div className="text-xs text-emerald-400/80">ยอดหารต่อคน ({activeCustomerCount} คน)</div>
-                    <div className="text-2xl font-bold font-mono text-emerald-400">
-
-                        {pricePerPerson} ฿
-                    </div>
-                </div>
-            </div>
-
+            <button
+                type="button"
+                onClick={handleClickCreateBill}
+                disabled={bill.length === 0}
+                className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-slate-950 font-bold py-3.5 rounded-xl text-center text-sm shadow-lg transition-colors flex items-center justify-center gap-2"
+            >
+                🧾 สร้างบิล QR Code
+            </button>
         </div>
     )
 }
