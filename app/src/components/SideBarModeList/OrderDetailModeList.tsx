@@ -12,8 +12,8 @@ interface OrderItem {
 interface Bill {
     customer_count: number;
     play_price: number;
-    order: string | null;
-    price: number;
+    order_list: string[];
+    order_price: number;
     total_price: number;
 }
 
@@ -24,92 +24,99 @@ export function OrderDetailModeList() {
     const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
     const [customerCount, setCustomerCount] = useState<number>(1);
     const [totalPrice, setTotalPrice] = useState<number>(0);
-    const [bill, setBill] = useState<Bill[]>([]);
+    const [bill, setBill] = useState<Bill | null>(null);
 
     const { currentSessionId } = useCartContext();
 
     useEffect(() => {
-        const fetchSessionData = async () => {
+        const fetchAndCalculateBill = async () => {
             if (!currentSessionId) return;
 
             try {
-                // ยิง API พร้อมกัน 2 ตัว
+                // 1. ดึงข้อมูล API
                 const [orderRes, customerRes] = await Promise.all([
                     getOrderBySessionId(currentSessionId).catch(() => ({ data: [] })),
                     getCustomerNumBySessionId(currentSessionId).catch(() => ({ data: [] }))
                 ]);
 
+                const fetchedOrders = orderRes?.data || [];
+                setOrderDetail(fetchedOrders);
+
+                // 2. คำนวณค่าบริการ (Play Price)
                 const customerData = customerRes?.data?.[0];
+                let totalPlayPrice = 0;
 
                 if (customerData) {
                     const count = customerData.customer_count ?? 1;
-                    const playPrice = Number(customerData.play_price ?? 0);
-                    const startTime = customerData.start_time ?? 0;
-                    const endTime = customerData.end_time ?? 0;
-
-                    const duration = Math.max(0, endTime - startTime);
-                    const total = count * playPrice * duration;
-
-                    console.log("startTime : ", startTime)
-                    console.log("endTime : ", endTime)
-
-                    console.log("count : ", count)
-                    console.log("playPrice : ", playPrice)
-                    console.log("duration : ", duration)
-
-                    console.log("total : ", total)
-
                     setCustomerCount(count);
-                    setTotalPrice(total);
+
+                    const playPrice = Number(customerData.play_price ?? 0);
+                    const rawStartTime = customerData.start_time;
+                    const startTime = rawStartTime ? new Date(rawStartTime).getTime() : 0;
+                    const endTime = Date.now();
+                    const duration = Math.max(0, endTime - startTime);
+
+                    const seconds = Math.floor(duration / 1000);
+                    const minutes = Math.floor(seconds / 60);
+                    const hours = Math.floor(minutes / 60);
+
+                    let playTime = hours;
+
+                    if (minutes % 60 > 15) {
+                        playTime += 1;
+                    }
+                    if (duration > 0 && playTime === 0) {
+                        playTime = 1;
+                    }
+
+                    totalPlayPrice = selectedCustomers.length * playPrice * playTime;
+                    setTotalPrice(totalPlayPrice);
                 }
 
-                setOrderDetail(orderRes?.data || []);
+                // 3. คำนวณบิล (Bill Calculation)
+                if (selectedCustomers.length === 0) {
+                    setBill(null);
+                    return;
+                }
+
+                const activeCustomerCount = selectedCustomers.length;
+
+                const selectedItems = selectedOrders.map((index) => fetchedOrders[index]).filter(Boolean);
+                const orderList = selectedItems.map((item) => (item.product_name));
+                const orderPrice = selectedItems.reduce((sum, item) => sum + (item.unit_price || 0) * item.quantity, 0);
+
+                const finalPrice = totalPlayPrice + orderPrice;
+
+                if (selectedOrders.length === 0) {
+                    setBill(
+                        {
+                            customer_count: activeCustomerCount,
+                            play_price: totalPlayPrice,
+                            order_list: [],
+                            order_price: 0,
+                            total_price: finalPrice
+                        }
+                    );
+                    return;
+                }
+
+                const calculatedBill: Bill = {
+                    customer_count: activeCustomerCount,
+                    play_price: totalPlayPrice,
+                    order_list: orderList,
+                    order_price: orderPrice,
+                    total_price: finalPrice
+                }
+
+                setBill(calculatedBill);
 
             } catch (error) {
                 console.error('Error fetching session data:', error);
             }
         };
 
-        fetchSessionData();
-    }, [currentSessionId]);
-
-    useEffect(() => {
-        if (selectedCustomers.length === 0) {
-            setBill([]);
-            return;
-        }
-
-        const activeCustomerCount = selectedCustomers.length;
-
-        if (selectedOrders.length === 0) {
-            setBill([
-                {
-                    customer_count: activeCustomerCount,
-                    play_price: totalPrice,
-                    order: null,
-                    price: 0,
-                    total_price: 0
-                }
-            ]);
-            return;
-        }
-
-        const selectedItems = selectedOrders.map((index) => orderDetail[index]).filter(Boolean);
-
-        const grandTotalSelected = selectedItems.reduce(
-            (sum, item) => sum + (item.unit_price || 0) * item.quantity, 0
-        );
-
-        const calculatedBill: Bill[] = selectedItems.map((item) => ({
-            customer_count: activeCustomerCount,
-            play_price: totalPrice,
-            order: item.product_name,
-            price: (item.unit_price || 0) * item.quantity,
-            total_price: grandTotalSelected
-        }));
-
-        setBill(calculatedBill);
-    }, [selectedOrders, selectedCustomers, orderDetail]);
+        fetchAndCalculateBill();
+    }, [currentSessionId, selectedCustomers, selectedOrders]);
 
     const handleToggleSelectOrder = (index: number) => {
         setSelectedOrders((prev) =>
@@ -128,7 +135,7 @@ export function OrderDetailModeList() {
     };
 
     const handleClickCreateBill = async () => {
-        // console.log("State customer:", selectedCustomers);
+
         console.log("bill :", bill);
     }
 
@@ -202,7 +209,7 @@ export function OrderDetailModeList() {
             <button
                 type="button"
                 onClick={handleClickCreateBill}
-                disabled={bill.length === 0}
+                disabled={!bill}
                 className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-slate-950 font-bold py-3.5 rounded-xl text-center text-sm shadow-lg transition-colors flex items-center justify-center gap-2"
             >
                 🧾 สร้างบิล QR Code
