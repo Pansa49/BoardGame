@@ -23,6 +23,7 @@ export function OrderDetailModeList() {
     const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
     const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
     const [customerCount, setCustomerCount] = useState<number>(1);
+    const [playPrice, setPlayPrice] = useState<number>(1);
     const [totalPrice, setTotalPrice] = useState<number>(0);
     const [bill, setBill] = useState<Bill | null>(null);
 
@@ -39,8 +40,17 @@ export function OrderDetailModeList() {
                     getCustomerNumBySessionId(currentSessionId).catch(() => ({ data: [] }))
                 ]);
 
-                const fetchedOrders = orderRes?.data || [];
-                setOrderDetail(fetchedOrders);
+                const orders = orderRes?.data || [];
+
+                const expandedOrders = orders.flatMap((item: OrderItem) =>
+                    Array.from({ length: item.quantity }, () => ({
+                        ...item,
+                        quantity: 1, // ปรับ quantity ของชิ้นย่อยเป็น 1
+                        unit_price: Number(item.unit_price) // แปลงราคาเป็น number เพื่อความง่ายในการคำนวณ
+                    }))
+                );
+
+                setOrderDetail(expandedOrders);
 
                 // 2. คำนวณค่าบริการ (Play Price)
                 const customerData = customerRes?.data?.[0];
@@ -70,7 +80,7 @@ export function OrderDetailModeList() {
                     }
 
                     totalPlayPrice = selectedCustomers.length * playPrice * playTime;
-                    setTotalPrice(totalPlayPrice);
+                    setPlayPrice(playPrice * playTime)
                 }
 
                 // 3. คำนวณบิล (Bill Calculation)
@@ -81,11 +91,12 @@ export function OrderDetailModeList() {
 
                 const activeCustomerCount = selectedCustomers.length;
 
-                const selectedItems = selectedOrders.map((index) => fetchedOrders[index]).filter(Boolean);
+                const selectedItems = selectedOrders.map((index) => expandedOrders[index]).filter(Boolean);
                 const orderList = selectedItems.map((item) => (item.product_name));
                 const orderPrice = selectedItems.reduce((sum, item) => sum + (item.unit_price || 0) * item.quantity, 0);
 
                 const finalPrice = totalPlayPrice + orderPrice;
+                setTotalPrice(finalPrice);
 
                 if (selectedOrders.length === 0) {
                     setBill(
@@ -109,6 +120,8 @@ export function OrderDetailModeList() {
                 }
 
                 setBill(calculatedBill);
+
+                console.log("orderDetail : l", orderDetail)
 
             } catch (error) {
                 console.error('Error fetching session data:', error);
@@ -161,7 +174,9 @@ export function OrderDetailModeList() {
                                 onChange={() => handleToggleSelectCustomer(customerId)}
                                 className="w-5 h-5 accent-green-600 rounded cursor-pointer"
                             />
-                            <span>ลูกค้าคนที่ {customerId}</span>
+                            <span>ลูกค้าคนที่ {customerId} </span>
+                            <div className="flex-1 border-b border-dotted border-slate-700 h-full mx-1"></div>
+                            <span>{playPrice} </span>
                         </label>
                     );
                 })}

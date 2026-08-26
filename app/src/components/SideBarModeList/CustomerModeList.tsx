@@ -68,7 +68,7 @@ export function CustomerModeList({ onCustomerCountChange }: CustomerModeListProp
                 disabled={customerCount === 0}
                 className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-slate-950 font-bold py-3.5 rounded-xl text-center text-sm shadow-lg transition-colors flex items-center justify-center gap-2"
             >
-                เสร็จสิ้น / บันทึกรายการ
+                บันทึกจำนวนลูกค้า
             </button>
         </div>
     );
