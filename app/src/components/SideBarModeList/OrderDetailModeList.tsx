@@ -40,21 +40,19 @@ export function OrderDetailModeList() {
                     getCustomerNumBySessionId(currentSessionId).catch(() => ({ data: [] }))
                 ]);
 
-                const orders = orderRes?.data || [];
-
+                const orders: OrderItem[] = orderRes?.data || [];
                 const expandedOrders = orders.flatMap((item: OrderItem) =>
                     Array.from({ length: item.quantity }, () => ({
                         ...item,
-                        quantity: 1, // ปรับ quantity ของชิ้นย่อยเป็น 1
-                        unit_price: Number(item.unit_price) // แปลงราคาเป็น number เพื่อความง่ายในการคำนวณ
+                        quantity: 1,
+                        unit_price: Number(item.unit_price)
                     }))
                 );
 
                 setOrderDetail(expandedOrders);
 
-                // 2. คำนวณค่าบริการ (Play Price)
-                const customerData = customerRes?.data?.[0];
                 let totalPlayPrice = 0;
+                const customerData = customerRes?.data?.[0];
 
                 if (customerData) {
                     const count = customerData.customer_count ?? 1;
@@ -71,13 +69,8 @@ export function OrderDetailModeList() {
                     const hours = Math.floor(minutes / 60);
 
                     let playTime = hours;
-
-                    if (minutes % 60 > 15) {
-                        playTime += 1;
-                    }
-                    if (duration > 0 && playTime === 0) {
-                        playTime = 1;
-                    }
+                    if (minutes % 60 > 15) playTime += 1;
+                    if (duration > 0 && playTime === 0) playTime = 1;
 
                     totalPlayPrice = selectedCustomers.length * playPrice * playTime;
                     setPlayPrice(playPrice * playTime)
@@ -86,42 +79,28 @@ export function OrderDetailModeList() {
                 // 3. คำนวณบิล (Bill Calculation)
                 if (selectedCustomers.length === 0) {
                     setBill(null);
+                    setTotalPrice(0);
                     return;
                 }
-
-                const activeCustomerCount = selectedCustomers.length;
 
                 const selectedItems = selectedOrders.map((index) => expandedOrders[index]).filter(Boolean);
                 const orderList = selectedItems.map((item) => (item.product_name));
                 const orderPrice = selectedItems.reduce((sum, item) => sum + (item.unit_price || 0) * item.quantity, 0);
 
+                const activeCustomerCount = selectedCustomers.length;
                 const finalPrice = totalPlayPrice + orderPrice;
-                setTotalPrice(finalPrice);
 
-                if (selectedOrders.length === 0) {
-                    setBill(
-                        {
-                            customer_count: activeCustomerCount,
-                            play_price: totalPlayPrice,
-                            order_list: [],
-                            order_price: 0,
-                            total_price: finalPrice
-                        }
-                    );
-                    return;
-                }
+                setTotalPrice(finalPrice);
 
                 const calculatedBill: Bill = {
                     customer_count: activeCustomerCount,
                     play_price: totalPlayPrice,
-                    order_list: orderList,
-                    order_price: orderPrice,
+                    order_list: selectedOrders.length === 0 ? [] : orderList,
+                    order_price: selectedOrders.length === 0 ? 0 : orderPrice,
                     total_price: finalPrice
                 }
 
                 setBill(calculatedBill);
-
-                console.log("orderDetail : l", orderDetail)
 
             } catch (error) {
                 console.error('Error fetching session data:', error);
