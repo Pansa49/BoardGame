@@ -1,21 +1,7 @@
 import { useEffect, useState } from "react";
-import { getOrderBySessionId, getCustomerNumBySessionId } from '../../api/fetchdata'
+import { getOrderBySessionId, getCustomerNumBySessionId } from '../../api/fetchdata';
 import { useCartContext } from "../../hook/use-cart-context";
-
-interface OrderItem {
-    product_name: string;
-    category: string;
-    quantity: number;
-    unit_price: number;
-}
-
-interface Bill {
-    customer_count: number;
-    play_price: number;
-    order_list: string[];
-    order_price: number;
-    total_price: number;
-}
+import type { Bill, OrderItem } from "../../../../share/details";
 
 export function OrderDetailModeList() {
 
@@ -31,14 +17,20 @@ export function OrderDetailModeList() {
     const [playPrice, setPlayPrice] = useState<number>(0);
 
     const [bill, setBill] = useState<Bill | null>(null);
-    const [totalBill, setTotalBill] = useState<Bill[]>([]);
 
-    const { currentSessionId } = useCartContext();
+    const { currentSessionId, updateTotalBill } = useCartContext();
 
     // 1. useEffect ตัวที่ 1: ยิง API ครั้งเดียวเมื่อเปลี่ยน Session (ไม่เกี่ยวกับ checkbox)
     useEffect(() => {
         const fetchSessionData = async () => {
             if (!currentSessionId) return;
+
+            // Reset selection state เมื่อเปลี่ยน Session ป้องกัน bug ข้อมูลข้าม session
+            setSelectedOrders([]);
+            setSelectedCustomers([]);
+            setBilledOrders([]);
+            setBilledCustomers([]);
+            setBill(null);
 
             try {
                 const [orderRes, customerRes] = await Promise.all([
@@ -75,7 +67,7 @@ export function OrderDetailModeList() {
                     if (minutes % 60 > 15) playTime += 1;
                     if (duration > 0 && playTime === 0) playTime = 1;
 
-                    setPlayPrice(basePlayPrice * playTime)
+                    setPlayPrice(basePlayPrice * playTime);
                 }
 
             } catch (error) {
@@ -107,12 +99,9 @@ export function OrderDetailModeList() {
         });
     }, [selectedCustomers, selectedOrders, playPrice, orderDetail]);
 
-    // 3. สำหรับดู log 
-    useEffect(() => {
-        console.log("totalBill อัปเดตจริงแล้ว :", totalBill);
-    }, [totalBill]);
-
     const handleToggleSelectOrder = (index: number) => {
+        if (billedOrders.includes(index)) return;
+
         setSelectedOrders((prev) =>
             prev.includes(index)
                 ? prev.filter((i) => i !== index)
@@ -121,6 +110,8 @@ export function OrderDetailModeList() {
     };
 
     const handleToggleSelectCustomer = (id: number) => {
+        if (billedCustomers.includes(id)) return;
+
         setSelectedCustomers((prev) =>
             prev.includes(id)
                 ? prev.filter((item) => item !== id)
@@ -128,17 +119,18 @@ export function OrderDetailModeList() {
         );
     };
 
+    // ออกบิล และเก็บค่าแบบไม่ซ้ำกัน (ป้องกัน bug array ซ้ำ)
     const handleClickCreateBill = () => {
         if (!bill) return;
 
-        setTotalBill((prev) => [...prev, bill]);
+        updateTotalBill(bill);
 
-        setBilledCustomers((prev) => [...prev, ...selectedCustomers]);
-        setBilledOrders((prev) => [...prev, ...selectedOrders]);
+        setBilledCustomers((prev) => Array.from(new Set([...prev, ...selectedCustomers])));
+        setBilledOrders((prev) => Array.from(new Set([...prev, ...selectedOrders])));
 
         setSelectedCustomers([]);
         setSelectedOrders([]);
-    }
+    };
 
     return (
         <div id="bill-container" className="flex flex-col gap-4">
@@ -151,19 +143,19 @@ export function OrderDetailModeList() {
                     return (
                         <label
                             key={i}
-                            className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${isBilled
-                                ? "border-amber-500 bg-amber-950/30 text-amber-300 font-medium"
+                            className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${isBilled
+                                ? "border-amber-500 bg-amber-950/30 text-amber-300 font-medium cursor-not-allowed"
                                 : isChecked
-                                    ? "border-emerald-500 bg-emerald-950/30 text-emerald-300 font-medium"
-                                    : "border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800/50"
+                                    ? "border-emerald-500 bg-emerald-950/30 text-emerald-300 font-medium cursor-pointer"
+                                    : "border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800/50 cursor-pointer"
                                 }`}
                         >
                             <input
                                 type="checkbox"
-                                checked={isChecked}
+                                checked={isChecked || isBilled}
                                 disabled={isBilled}
                                 onChange={() => handleToggleSelectCustomer(customerId)}
-                                className={`w-5 h-5 accent-green-600 rounded cursor-pointer `}
+                                className={`w-5 h-5 rounded ${isBilled ? "accent-amber-500 cursor-not-allowed" : "accent-green-600 cursor-pointer"}`}
                             />
                             <span>ลูกค้าคนที่ {customerId} </span>
                             <div className="flex-1 border-b border-dotted border-slate-700 h-full mx-1"></div>
@@ -177,7 +169,6 @@ export function OrderDetailModeList() {
                 className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col gap-2 mb-4">
                 <div className="flex flex-col justify-between text-xs text-slate-400">
                     <div className="flex flex-col gap-1 text-xs">
-
                         {orderDetail.map((item, index) => {
                             const isSelected = selectedOrders.includes(index);
                             const isBilled = billedOrders.includes(index);
@@ -186,26 +177,26 @@ export function OrderDetailModeList() {
                                 <div
                                     key={index}
                                     onClick={() => handleToggleSelectOrder(index)}
-                                    className="flex items-center gap-2 text-slate-300 cursor-pointer py-1"
+                                    className={`flex items-center gap-2 py-1 ${isBilled ? "cursor-not-allowed opacity-80" : "cursor-pointer"}`}
                                 >
                                     <div className={`w-4 h-4 rounded-full border shrink-0 transition-colors ${isBilled
                                         ? "bg-amber-500 border-amber-500" // ออกบิลแล้ว = เหลือง
                                         : isSelected
                                             ? "bg-emerald-500 border-emerald-500" // เลือกอยู่ = เขียว
                                             : "border-slate-600 bg-slate-900"
-                                        }`} />
+                                        }`}
+                                    />
 
-                                    <span className="font-medium text-slate-200">
+                                    <span className={`font-medium ${isBilled ? "text-amber-300" : "text-slate-200"}`}>
                                         {item.product_name}
                                     </span>
-                                    <span className="text-emerald-500 text-[15px]">
+                                    <span className={isBilled ? "text-amber-400 text-[15px]" : "text-emerald-500 text-[15px]"}>
                                         x{item.quantity}
                                     </span>
 
-                                    {/* เส้นจุดเชื่อม */}
                                     <div className="flex-1 border-b border-dotted border-slate-700 h-full mx-1"></div>
 
-                                    <span className="font-mono font-semibold text-emerald-400 shrink-0">
+                                    <span className={`font-mono font-semibold shrink-0 ${isBilled ? "text-amber-400" : "text-emerald-400"}`}>
                                         {item.unit_price * item.quantity}
                                     </span>
                                 </div>
@@ -224,5 +215,5 @@ export function OrderDetailModeList() {
                 🧾 สร้างบิล QR Code
             </button>
         </div>
-    )
+    );
 }

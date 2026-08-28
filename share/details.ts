@@ -57,3 +57,18 @@ export type SideBarProps = {
     mode: SidebarMode;
     onClose: () => void;
 };
+
+export interface OrderItem {
+    product_name: string;
+    category: string;
+    quantity: number;
+    unit_price: number;
+}
+
+export interface Bill {
+    customer_count: number;
+    play_price: number;
+    order_list: string[];
+    order_price: number;
+    total_price: number;
+}

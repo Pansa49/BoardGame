@@ -1,13 +1,15 @@
-import { createContext, useState } from "react";
-import type { Menu } from '../../../share/details'
+import { createContext, useState, useEffect } from "react";
+import type { Menu, Bill } from '../../../share/details';
 
 type CartContextType = {
     menus: Menu[];
     tempOrders: Record<number, number>;
     currentSessionId: number | null;
+    totalBill: Bill[];
 
     // fn
     updateMenus: (menu: Menu[]) => void;
+    updateTotalBill: (bill: Bill) => void;
     updateSessionId: (sessionId: number | null) => void;
     updateOrderQty: (productId: number, delta: number) => void;
     resetTempOrders: () => void;
@@ -18,18 +20,25 @@ export const CartContext = createContext<CartContextType | null>(null);
 export function CartProvider({ children }: { children: React.ReactNode }) {
 
     const [menus, setMenus] = useState<Menu[]>([]);
-    const [currentSessionId, setCurrentSessionId] = useState<number | null>(0);
+    const [totalBill, setTotalBill] = useState<Bill[]>([]);
+    const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
 
     /* State สำหรับเก็บจำนวนสินค้าชั่วคราว ย่อจาก = useState<{ [key: number]: number }>({});*/
-    const [tempOrders, setTempOrders] = useState<Record<number, number>>({})
+    const [tempOrders, setTempOrders] = useState<Record<number, number>>({});
 
-    const updateMenus = (menu: Menu[]) => {
-        setMenus(menu)
-    }
+    // useEffect(() => {
+    //     console.log(totalBill)
+    // }, [totalBill]);
+
+    const updateMenus = (menu: Menu[]) => { setMenus(menu); };
 
     const updateSessionId = (sessionId: number | null) => {
         setCurrentSessionId(sessionId);
-    }
+        setTotalBill([]);
+        setTempOrders({});
+    };
+
+    const resetTempOrders = () => setTempOrders({});
 
     const updateOrderQty = (productId: number, delta: number) => {
         setTempOrders((prev) => {
@@ -49,13 +58,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         });
     };
 
-    const resetTempOrders = () => setTempOrders({});
+    const updateTotalBill = (bill: Bill) => { setTotalBill((prev) => [...prev, bill]); };
 
     return (
         <CartContext.Provider
             value={{
-                menus, currentSessionId,
-                updateMenus, updateSessionId, tempOrders, updateOrderQty, resetTempOrders,
+                menus, currentSessionId, totalBill, tempOrders,
+                updateMenus, updateTotalBill, updateSessionId, updateOrderQty, resetTempOrders,
             }}
         >
             {children}
