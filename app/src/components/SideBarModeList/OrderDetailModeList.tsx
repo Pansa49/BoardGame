@@ -20,6 +20,7 @@ interface Bill {
 export function OrderDetailModeList() {
 
     const [orderDetail, setOrderDetail] = useState<OrderItem[]>([]);
+
     const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
     const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
 
@@ -30,13 +31,7 @@ export function OrderDetailModeList() {
     const [playPrice, setPlayPrice] = useState<number>(0);
 
     const [bill, setBill] = useState<Bill | null>(null);
-    const [totalBill, setTotalBill] = useState<Bill>({
-        customer_count: 0,
-        play_price: 0,
-        order_list: [],
-        order_price: 0,
-        total_price: 0,
-    });
+    const [totalBill, setTotalBill] = useState<Bill[]>([]);
 
     const { currentSessionId } = useCartContext();
 
@@ -112,6 +107,11 @@ export function OrderDetailModeList() {
         });
     }, [selectedCustomers, selectedOrders, playPrice, orderDetail]);
 
+    // 3. สำหรับดู log 
+    useEffect(() => {
+        console.log("totalBill อัปเดตจริงแล้ว :", totalBill);
+    }, [totalBill]);
+
     const handleToggleSelectOrder = (index: number) => {
         setSelectedOrders((prev) =>
             prev.includes(index)
@@ -128,27 +128,16 @@ export function OrderDetailModeList() {
         );
     };
 
-    const handleClickCreateBill = async () => {
+    const handleClickCreateBill = () => {
+        if (!bill) return;
 
+        setTotalBill((prev) => [...prev, bill]);
 
-        // 💡 ย้ายรายการที่ติ๊กเลือก ไปใส่ใน Billed แล้วล้างค่า Selected ออก
         setBilledCustomers((prev) => [...prev, ...selectedCustomers]);
         setBilledOrders((prev) => [...prev, ...selectedOrders]);
 
         setSelectedCustomers([]);
         setSelectedOrders([]);
-
-        // console.log("orderDetail :", orderDetail);
-        // console.log("selectedOrders :", selectedOrders);
-        // console.log("selectedCustomers :", selectedCustomers);
-        // console.log("customerCount :", customerCount);
-
-        console.log("billedOrders :", billedOrders);
-        console.log("billedCustomers :", billedCustomers);
-
-        // console.log("playPrice :", playPrice);
-        console.log("bill :", bill);
-        console.log("totalBill :", totalBill);
     }
 
     return (
