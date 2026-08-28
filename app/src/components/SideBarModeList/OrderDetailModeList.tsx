@@ -24,7 +24,6 @@ export function OrderDetailModeList() {
     const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
     const [customerCount, setCustomerCount] = useState<number>(1);
     const [playPrice, setPlayPrice] = useState<number>(1);
-    const [totalPrice, setTotalPrice] = useState<number>(0);
     const [bill, setBill] = useState<Bill | null>(null);
 
     const { currentSessionId } = useCartContext();
@@ -39,6 +38,12 @@ export function OrderDetailModeList() {
                     getOrderBySessionId(currentSessionId).catch(() => ({ data: [] })),
                     getCustomerNumBySessionId(currentSessionId).catch(() => ({ data: [] }))
                 ]);
+
+                console.log("orderRes : ", orderRes)
+                console.log("customerRes : ", customerRes)
+
+                console.log(orderRes.data.length)
+                console.log(customerRes.data[0].customer_count)
 
                 const orders: OrderItem[] = orderRes?.data || [];
                 const expandedOrders = orders.flatMap((item: OrderItem) =>
@@ -79,7 +84,6 @@ export function OrderDetailModeList() {
                 // 3. คำนวณบิล (Bill Calculation)
                 if (selectedCustomers.length === 0) {
                     setBill(null);
-                    setTotalPrice(0);
                     return;
                 }
 
@@ -89,8 +93,6 @@ export function OrderDetailModeList() {
 
                 const activeCustomerCount = selectedCustomers.length;
                 const finalPrice = totalPlayPrice + orderPrice;
-
-                setTotalPrice(finalPrice);
 
                 const calculatedBill: Bill = {
                     customer_count: activeCustomerCount,
@@ -129,8 +131,10 @@ export function OrderDetailModeList() {
     const handleClickCreateBill = async () => {
 
         console.log("bill :", bill);
-    }
+        console.log("selectedCustomers :", selectedCustomers);
+        console.log("selectedOrders :", selectedOrders);
 
+    }
 
     return (
         <div id="bill-container" className="flex flex-col gap-4">
