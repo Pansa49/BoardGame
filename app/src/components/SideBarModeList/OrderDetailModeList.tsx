@@ -23,27 +23,21 @@ export function OrderDetailModeList() {
     const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
     const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
     const [customerCount, setCustomerCount] = useState<number>(1);
-    const [playPrice, setPlayPrice] = useState<number>(1);
+    const [playPrice, setPlayPrice] = useState<number>(0);
     const [bill, setBill] = useState<Bill | null>(null);
 
     const { currentSessionId } = useCartContext();
 
+    // 1. useEffect ตัวที่ 1: ยิง API ครั้งเดียวเมื่อเปลี่ยน Session (ไม่เกี่ยวกับ checkbox)
     useEffect(() => {
-        const fetchAndCalculateBill = async () => {
+        const fetchSessionData = async () => {
             if (!currentSessionId) return;
 
             try {
-                // 1. ดึงข้อมูล API
                 const [orderRes, customerRes] = await Promise.all([
                     getOrderBySessionId(currentSessionId).catch(() => ({ data: [] })),
                     getCustomerNumBySessionId(currentSessionId).catch(() => ({ data: [] }))
                 ]);
-
-                console.log("orderRes : ", orderRes)
-                console.log("customerRes : ", customerRes)
-
-                console.log(orderRes.data.length)
-                console.log(customerRes.data[0].customer_count)
 
                 const orders: OrderItem[] = orderRes?.data || [];
                 const expandedOrders = orders.flatMap((item: OrderItem) =>
@@ -56,18 +50,15 @@ export function OrderDetailModeList() {
 
                 setOrderDetail(expandedOrders);
 
-                let totalPlayPrice = 0;
                 const customerData = customerRes?.data?.[0];
-
                 if (customerData) {
                     const count = customerData.customer_count ?? 1;
                     setCustomerCount(count);
 
-                    const playPrice = Number(customerData.play_price ?? 0);
+                    const basePlayPrice = Number(customerData.play_price ?? 0);
                     const rawStartTime = customerData.start_time;
                     const startTime = rawStartTime ? new Date(rawStartTime).getTime() : 0;
-                    const endTime = Date.now();
-                    const duration = Math.max(0, endTime - startTime);
+                    const duration = Math.max(0, Date.now() - startTime);
 
                     const seconds = Math.floor(duration / 1000);
                     const minutes = Math.floor(seconds / 60);
@@ -77,40 +68,37 @@ export function OrderDetailModeList() {
                     if (minutes % 60 > 15) playTime += 1;
                     if (duration > 0 && playTime === 0) playTime = 1;
 
-                    totalPlayPrice = selectedCustomers.length * playPrice * playTime;
-                    setPlayPrice(playPrice * playTime)
+                    setPlayPrice(basePlayPrice * playTime)
                 }
-
-                // 3. คำนวณบิล (Bill Calculation)
-                if (selectedCustomers.length === 0) {
-                    setBill(null);
-                    return;
-                }
-
-                const selectedItems = selectedOrders.map((index) => expandedOrders[index]).filter(Boolean);
-                const orderList = selectedItems.map((item) => (item.product_name));
-                const orderPrice = selectedItems.reduce((sum, item) => sum + (item.unit_price || 0) * item.quantity, 0);
-
-                const activeCustomerCount = selectedCustomers.length;
-                const finalPrice = totalPlayPrice + orderPrice;
-
-                const calculatedBill: Bill = {
-                    customer_count: activeCustomerCount,
-                    play_price: totalPlayPrice,
-                    order_list: selectedOrders.length === 0 ? [] : orderList,
-                    order_price: selectedOrders.length === 0 ? 0 : orderPrice,
-                    total_price: finalPrice
-                }
-
-                setBill(calculatedBill);
 
             } catch (error) {
                 console.error('Error fetching session data:', error);
             }
         };
 
-        fetchAndCalculateBill();
-    }, [currentSessionId, selectedCustomers, selectedOrders]);
+        fetchSessionData();
+    }, [currentSessionId]);
+
+    // 2. useEffect ตัวที่ 2: คำนวณบิลใหม่ทันทีเฉพาะเวลาติ๊กเลือก (ไม่ต้องยิง API)
+    useEffect(() => {
+        if (selectedCustomers.length === 0) {
+            setBill(null);
+            return;
+        }
+
+        const totalPlayPrice = selectedCustomers.length * playPrice;
+        const selectedItems = selectedOrders.map((index) => orderDetail[index]).filter(Boolean);
+        const orderList = selectedItems.map((item) => item.product_name);
+        const orderPrice = selectedItems.reduce((sum, item) => sum + (item.unit_price || 0), 0);
+
+        setBill({
+            customer_count: selectedCustomers.length,
+            play_price: totalPlayPrice,
+            order_list: orderList,
+            order_price: orderPrice,
+            total_price: totalPlayPrice + orderPrice
+        });
+    }, [selectedCustomers, selectedOrders, playPrice, orderDetail]);
 
     const handleToggleSelectOrder = (index: number) => {
         setSelectedOrders((prev) =>
@@ -130,10 +118,14 @@ export function OrderDetailModeList() {
 
     const handleClickCreateBill = async () => {
 
-        console.log("bill :", bill);
-        console.log("selectedCustomers :", selectedCustomers);
+        console.log("orderDetail :", orderDetail);
         console.log("selectedOrders :", selectedOrders);
 
+        console.log("selectedCustomers :", selectedCustomers);
+        console.log("customerCount :", customerCount);
+
+        console.log("playPrice :", playPrice);
+        console.log("bill :", bill);
     }
 
     return (
