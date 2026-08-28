@@ -22,9 +22,21 @@ export function OrderDetailModeList() {
     const [orderDetail, setOrderDetail] = useState<OrderItem[]>([]);
     const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
     const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
+
+    const [billedOrders, setBilledOrders] = useState<number[]>([]);
+    const [billedCustomers, setBilledCustomers] = useState<number[]>([]);
+
     const [customerCount, setCustomerCount] = useState<number>(1);
     const [playPrice, setPlayPrice] = useState<number>(0);
+
     const [bill, setBill] = useState<Bill | null>(null);
+    const [totalBill, setTotalBill] = useState<Bill>({
+        customer_count: 0,
+        play_price: 0,
+        order_list: [],
+        order_price: 0,
+        total_price: 0,
+    });
 
     const { currentSessionId } = useCartContext();
 
@@ -81,7 +93,7 @@ export function OrderDetailModeList() {
 
     // 2. useEffect ตัวที่ 2: คำนวณบิลใหม่ทันทีเฉพาะเวลาติ๊กเลือก (ไม่ต้องยิง API)
     useEffect(() => {
-        if (selectedCustomers.length === 0) {
+        if (selectedCustomers.length === 0 && selectedOrders.length === 0) {
             setBill(null);
             return;
         }
@@ -118,14 +130,25 @@ export function OrderDetailModeList() {
 
     const handleClickCreateBill = async () => {
 
-        console.log("orderDetail :", orderDetail);
-        console.log("selectedOrders :", selectedOrders);
 
-        console.log("selectedCustomers :", selectedCustomers);
-        console.log("customerCount :", customerCount);
+        // 💡 ย้ายรายการที่ติ๊กเลือก ไปใส่ใน Billed แล้วล้างค่า Selected ออก
+        setBilledCustomers((prev) => [...prev, ...selectedCustomers]);
+        setBilledOrders((prev) => [...prev, ...selectedOrders]);
 
-        console.log("playPrice :", playPrice);
+        setSelectedCustomers([]);
+        setSelectedOrders([]);
+
+        // console.log("orderDetail :", orderDetail);
+        // console.log("selectedOrders :", selectedOrders);
+        // console.log("selectedCustomers :", selectedCustomers);
+        // console.log("customerCount :", customerCount);
+
+        console.log("billedOrders :", billedOrders);
+        console.log("billedCustomers :", billedCustomers);
+
+        // console.log("playPrice :", playPrice);
         console.log("bill :", bill);
+        console.log("totalBill :", totalBill);
     }
 
     return (
@@ -134,20 +157,24 @@ export function OrderDetailModeList() {
                 {Array.from({ length: customerCount }).map((_, i) => {
                     const customerId = i + 1;
                     const isChecked = selectedCustomers.includes(customerId);
+                    const isBilled = billedCustomers.includes(customerId);
 
                     return (
                         <label
                             key={i}
-                            className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${isChecked
-                                ? "border-emerald-500 bg-emerald-950/30 text-emerald-300 font-medium"
-                                : "border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800/50"
+                            className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${isBilled
+                                ? "border-amber-500 bg-amber-950/30 text-amber-300 font-medium"
+                                : isChecked
+                                    ? "border-emerald-500 bg-emerald-950/30 text-emerald-300 font-medium"
+                                    : "border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800/50"
                                 }`}
                         >
                             <input
                                 type="checkbox"
                                 checked={isChecked}
+                                disabled={isBilled}
                                 onChange={() => handleToggleSelectCustomer(customerId)}
-                                className="w-5 h-5 accent-green-600 rounded cursor-pointer"
+                                className={`w-5 h-5 accent-green-600 rounded cursor-pointer `}
                             />
                             <span>ลูกค้าคนที่ {customerId} </span>
                             <div className="flex-1 border-b border-dotted border-slate-700 h-full mx-1"></div>
@@ -163,17 +190,20 @@ export function OrderDetailModeList() {
                     <div className="flex flex-col gap-1 text-xs">
 
                         {orderDetail.map((item, index) => {
-
                             const isSelected = selectedOrders.includes(index);
+                            const isBilled = billedOrders.includes(index);
+
                             return (
                                 <div
                                     key={index}
                                     onClick={() => handleToggleSelectOrder(index)}
                                     className="flex items-center gap-2 text-slate-300 cursor-pointer py-1"
                                 >
-                                    <div className={`w-4 h-4 rounded-full border shrink-0 transition-colors ${isSelected
-                                        ? "bg-emerald-500 border-emerald-500"
-                                        : "border-slate-600 bg-slate-900"
+                                    <div className={`w-4 h-4 rounded-full border shrink-0 transition-colors ${isBilled
+                                        ? "bg-amber-500 border-amber-500" // ออกบิลแล้ว = เหลือง
+                                        : isSelected
+                                            ? "bg-emerald-500 border-emerald-500" // เลือกอยู่ = เขียว
+                                            : "border-slate-600 bg-slate-900"
                                         }`} />
 
                                     <span className="font-medium text-slate-200">
