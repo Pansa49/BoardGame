@@ -26,9 +26,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     /* State สำหรับเก็บจำนวนสินค้าชั่วคราว ย่อจาก = useState<{ [key: number]: number }>({});*/
     const [tempOrders, setTempOrders] = useState<Record<number, number>>({});
 
-    // useEffect(() => {
-    //     console.log(totalBill)
-    // }, [totalBill]);
+    useEffect(() => {
+        console.log("totalBill : ", totalBill)
+    });
 
     const updateMenus = (menu: Menu[]) => { setMenus(menu); };
 
