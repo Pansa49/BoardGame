@@ -172,10 +172,10 @@ exports.closedSession = async (req, res) => {
 
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error("Cancel Session Error:", error);
+        console.error("Close Session Error:", error);
         res.status(500).json({
             status: "error",
-            message: "Failed to cancel session",
+            message: "Failed to close session",
             error: error.message
         });
     } finally {
