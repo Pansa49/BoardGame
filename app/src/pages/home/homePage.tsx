@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Table, SidebarMode } from '../../../../share/details'
 import { SideBar } from "../../components/SideBar";
-import { getMenus, getTables, createSessions } from "../../api/fetchdata"
+import { getMenus, getTables, createSessions, closedSession } from "../../api/fetchdata"
 import { useCartContext } from "../../hook/use-cart-context";
 
 export function HomePage() {
@@ -13,11 +13,12 @@ export function HomePage() {
 
     const selectedTable = tables.find(t => t.table_id === selectedTableId) || null;
 
-    const { updateMenus, updateSessionId, } = useCartContext()
+    const { updateMenus, updateSessionId, currentSessionId } = useCartContext()
 
     useEffect(() => {
         handleGetTables();
     }, []);
+
 
     const getCurrentTimeString = () => {
         const currentTimeString = new Date().toLocaleTimeString('th-TH', {
@@ -34,8 +35,8 @@ export function HomePage() {
     };
 
     const handleCloseSidebar = () => {
-        setOpenSideBar(false);
         setSidebarMode(null);
+        setOpenSideBar(false);
     };
 
     const handleGetMenus = async () => {
@@ -102,6 +103,41 @@ export function HomePage() {
         }
     }
 
+    const handleCloseSession = async () => {
+        if (!currentSessionId || !selectedTableId) return;
+
+        console.log("selectedTableId : ", selectedTableId)
+        console.log("currentSessionId : ", currentSessionId)
+        console.log("selectedTable : ", selectedTable)
+
+        try {
+            const res = await closedSession(currentSessionId)
+            if (res.success && res.response?.status === "success") {
+                setTables(prev => prev.map(t => {
+                    if (t.table_id === selectedTableId) {
+                        return {
+                            ...t,
+                            status: "available",
+                            startTime: null,
+                            customerCount: 0,
+                            sessionId: null
+                        };
+                    }
+                    return t;
+                }));
+
+                updateSessionId(null);
+                setTempCustomerCount(1);
+                setSelectedTableId(null);
+
+                console.log("ปิดเซสชันสำเร็จ:", res.response.message);
+            }
+
+        } catch (error) {
+            console.error("Error in handleCloseSession:", error);
+        }
+    }
+
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col overflow-x-hidden">
 
@@ -138,7 +174,8 @@ export function HomePage() {
                                         setSelectedTableId(table.table_id);
                                         if (table.status === "occupied") {
                                             updateSessionId(table.sessionId ? table.sessionId : 0);
-                                            console.log("sessionId : ", table.sessionId);
+                                            // console.log("sessionId : ", table.sessionId);
+                                            // console.log(" currentSessionId : ", currentSessionId);
                                         }
                                     }}
                                     className={`relative rounded-2xl border-2 p-5 flex flex-col items-center justify-between aspect-square transition-all duration-300
@@ -249,16 +286,16 @@ export function HomePage() {
                                         <div className="flex flex-col gap-2">
                                             <button
                                                 onClick={() => handleOpenSidebar('Order')}
-                                                className="w-full bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 disabled:from-slate-800 disabled:to-slate-800 text-slate-950 font-bold py-3.5 rounded-2xl text-center flex justify-center items-center gap-2 transition-all shadow-lg shadow-amber-500/10 text-sm"
+                                                className="w-full bg-gradient-to-r from-emerald-500 to-yellow-500 hover:from-emerald-700 hover:to-yellow-700 disabled:from-slate-800 disabled:to-slate-800 text-slate-950 font-bold py-3.5 rounded-2xl text-center flex justify-center items-center gap-2 transition-all shadow-lg shadow-emerald-500/10 text-sm"
                                             >
                                                 🧾 ดูรายการทั้งหมด & เช็คบิล
                                             </button>
 
                                             <button
-                                                onClick={() => handleOpenSidebar('Bill')}
-                                                className="w-full py-2 rounded-xl text-[10px] font-bold bg-transparent text-rose-400 hover:text-rose-300 border border-rose-500/20 hover:border-rose-500/40 transition-all uppercase tracking-wider"
+                                                onClick={handleCloseSession}
+                                                className="w-full py-2 rounded-xl text-[14px] font-bold bg-transition hover:bg-rose-700 text-white border border-rose-500/20 transition-all uppercase tracking-wider"
                                             >
-                                                ❌ ยกเลิกการจองโต๊ะนี้
+                                                ❌ ปิดโต๊ะ / ยกเลิกโต๊ะ
                                             </button>
                                         </div>
                                     </div>
