@@ -2,9 +2,9 @@ export interface Table {
     id: number;
     name: string;
     status: "available" | "occupied";
-    startTime?: string;
+    startTime?: string | null;
     customerCount?: number;
-    sessionId?: number;
+    sessionId?: number | null;
 }
 
 export interface FoodItem {
