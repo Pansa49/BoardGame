@@ -146,13 +146,13 @@ exports.closedSession = async (req, res) => {
         await client.query('BEGIN');
 
         // อัปเดต status เป็น 'closed' และลง end_time ปัจจุบัน
-        const cancelSql = `
+        const sql = `
             UPDATE sessions 
             SET status = 'closed', end_time = CURRENT_TIMESTAMP 
             WHERE session_id = $1 
             RETURNING *;
         `;
-        const result = await client.query(cancelSql, [session_id]);
+        const result = await client.query(sql, [session_id]);
 
         if (result.rowCount === 0) {
             await client.query('ROLLBACK');
