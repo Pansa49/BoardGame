@@ -1,12 +1,16 @@
-import { useState, useEffect } from "react";
-import type { Table, SidebarMode } from '../../../../share/details'
-import { SideBar } from "../../components/SideBar";
-import { getMenus, getTables, createSessions, closedSession } from "../../api/fetchdata"
+import { useState } from "react";
+import { useLoaderData } from "react-router-dom";
 import { useCartContext } from "../../hook/use-cart-context";
 
+import type { Table, SidebarMode } from '../../../../share/details'
+import { SideBar } from "../../components/SideBar";
+import { getMenus, createSessions, closedSession } from "../../api/fetchdata"
+
 export function HomePage() {
-    const [tables, setTables] = useState<Table[]>([]);
-    const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
+    const tablesLoader = useLoaderData<Table[]>();
+
+    const [tables, setTables] = useState<Table[]>(tablesLoader);
+    const [selectedTableId, setSelectedTableId] = useState<number | null>(tablesLoader[0]?.table_id ?? null);
     const [tempCustomerCount, setTempCustomerCount] = useState<number>(1);
     const [openSideBar, setOpenSideBar] = useState(false);
     const [sidebarMode, setSidebarMode] = useState<SidebarMode>(null);
@@ -14,11 +18,6 @@ export function HomePage() {
     const selectedTable = tables.find(t => t.table_id === selectedTableId) || null;
 
     const { updateMenus, updateSessionId, currentSessionId } = useCartContext()
-
-    useEffect(() => {
-        handleGetTables();
-    }, []);
-
 
     const getCurrentTimeString = () => {
         const currentTimeString = new Date().toLocaleTimeString('th-TH', {
@@ -47,21 +46,6 @@ export function HomePage() {
 
         } catch (error) {
             console.log("get menus error or something error")
-        }
-    }
-
-    const handleGetTables = async () => {
-        try {
-            const res = await getTables();
-            const tables = res.data;
-
-            setTables(tables);
-
-            if (tables.length > 0 && !selectedTableId) {
-                setSelectedTableId(tables[0].table_id);
-            }
-        } catch (error) {
-            console.log("get tables error or something error")
         }
     }
 
@@ -229,7 +213,7 @@ export function HomePage() {
                             {/* หัวข้อรายละเอียดโต๊ะ */}
                             <div className="border-b border-slate-800 pb-4 mb-4">
                                 <div className="flex justify-between items-center mb-2">
-                                    <h3 className="text-lg font-extrabold text-white">รายละเอียด โต๊ะ {selectedTable.name}</h3>
+                                    <h3 className="text-lg font-extrabold text-white">รายละเอียด โต๊ะ {selectedTable.table_number}</h3>
                                     <span className={`px-2.5 py-1 rounded-full text-xs font-bold border 
                         ${selectedTable.status === "occupied" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"}`}>
                                         {selectedTable.status === "occupied" ? `🔴 เล่นอยู่ (${selectedTable.customerCount} คน)` : "🟢 โต๊ะว่าง"}
@@ -293,7 +277,7 @@ export function HomePage() {
 
                                             <button
                                                 onClick={handleCloseSession}
-                                                className="w-full py-2 rounded-xl text-[14px] font-bold bg-transition hover:bg-rose-700 text-white border border-rose-500/20 transition-all uppercase tracking-wider"
+                                                className="w-full py-2 rounded-xl text-[14px] font-bold bg-rose-900/40 hover:bg-rose-700 text-white border border-rose-500/20 transition-all uppercase tracking-wider"
                                             >
                                                 ❌ ปิดโต๊ะ / ยกเลิกโต๊ะ
                                             </button>
