@@ -1,16 +1,31 @@
-import type { Table } from "../../../../share/details";
-import { getTables } from "../../api/fetchdata"
+import type { Table, Menu, HomeLoaderData } from "../../../../share/details";
+import { getTables, getMenus } from "../../api/fetchdata";
 
-
-export const homeLoader = async () => {
+export const homeLoader = async (): Promise<HomeLoaderData> => {
     try {
-        const res = await getTables();
-        const tables: Table[] = res.data || [];
+        const [resTables, resMenus] = await Promise.all([
+            getTables().catch((err) => {
+                console.error("Failed to fetch tables:", err);
+                return null;
+            }),
+            getMenus().catch((err) => {
+                console.error("Failed to fetch menus:", err);
+                return null;
+            })
+        ]);
 
-        console.log("tables:", tables);
-        return tables;
+        const tables: Table[] = resTables?.data || (Array.isArray(resTables) ? resTables : []);
+        const menus: Menu[] = resMenus?.data || (Array.isArray(resMenus) ? resMenus : []);
+
+        return {
+            resTables: tables,
+            resMenus: menus
+        };
     } catch (error) {
-        console.error("Failed to load tables:", error);
-        return [];
+        console.error("Failed to load home data:", error);
+        return {
+            resTables: [],
+            resMenus: []
+        };
     }
-}
+};

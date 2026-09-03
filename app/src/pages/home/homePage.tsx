@@ -1,16 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLoaderData } from "react-router-dom";
 import { useCartContext } from "../../hook/use-cart-context";
 
-import type { Table, SidebarMode } from '../../../../share/details'
+import type { Table, SidebarMode, HomeLoaderData } from '../../../../share/details'
 import { SideBar } from "../../components/SideBar";
-import { getMenus, createSessions, closedSession } from "../../api/fetchdata"
+import { createSessions, closedSession } from "../../api/fetchdata"
 
 export function HomePage() {
-    const tablesLoader = useLoaderData<Table[]>();
+    const { resTables, resMenus } = useLoaderData() as HomeLoaderData;
 
-    const [tables, setTables] = useState<Table[]>(tablesLoader);
-    const [selectedTableId, setSelectedTableId] = useState<number | null>(tablesLoader[0]?.table_id ?? null);
+    const [tables, setTables] = useState<Table[]>(resTables);
+    const [selectedTableId, setSelectedTableId] = useState<number | null>(resTables[0]?.table_id ?? null);
     const [tempCustomerCount, setTempCustomerCount] = useState<number>(1);
     const [openSideBar, setOpenSideBar] = useState(false);
     const [sidebarMode, setSidebarMode] = useState<SidebarMode>(null);
@@ -18,6 +18,12 @@ export function HomePage() {
     const selectedTable = tables.find(t => t.table_id === selectedTableId) || null;
 
     const { updateMenus, updateSessionId, currentSessionId } = useCartContext()
+
+    useEffect(() => {
+        if (resMenus.length > 0) {
+            updateMenus(resMenus);
+        }
+    }, [resMenus, updateMenus]);
 
     const getCurrentTimeString = () => {
         const currentTimeString = new Date().toLocaleTimeString('th-TH', {
@@ -40,9 +46,8 @@ export function HomePage() {
 
     const handleGetMenus = async () => {
         try {
-            const res = await getMenus();
-            const menu = res.data;
-            updateMenus(menu);
+
+            updateMenus(resMenus);
 
         } catch (error) {
             console.log("get menus error or something error")

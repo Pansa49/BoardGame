@@ -72,3 +72,8 @@ export interface Bill {
     order_price: number;
     total_price: number;
 }
+
+export interface HomeLoaderData {
+    resTables: Table[];
+    resMenus: Menu[];
+}
