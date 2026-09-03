@@ -27,8 +27,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const [tempOrders, setTempOrders] = useState<Record<number, number>>({});
 
     useEffect(() => {
-        console.log("totalBill : ", totalBill)
-    });
+        console.log("totalBill : ", totalBill);
+        console.log("currentSessionId : ", currentSessionId);
+    }, [totalBill, currentSessionId]);
 
     const updateMenus = (menu: Menu[]) => { setMenus(menu); };
 

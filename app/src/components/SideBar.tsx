@@ -6,11 +6,9 @@ import { CustomerModeList } from "./SideBarModeList/CustomerModeList";
 import { BillModelist } from "./SideBarModeList/BillModeList";
 
 export function SideBar({ isOpen, mode, onClose }: SideBarProps) {
-    const { menus, tempOrders, currentSessionId, updateOrderQty } = useCartContext();
+    const { menus, tempOrders, updateOrderQty } = useCartContext();
 
     if (!isOpen || !mode) return null;
-
-    console.log(currentSessionId);
 
     return (
         <div id="sidebar-container">
