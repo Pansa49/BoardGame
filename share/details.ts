@@ -73,6 +73,16 @@ export interface Bill {
     total_price: number;
 }
 
+export interface FinalBill {
+    sessionId: number;
+    totalPlay: number;
+    totalOrder: number;
+    grandTotal: number;
+    payMethod: string;
+    payTime: Date;
+
+}
+
 export interface HomeLoaderData {
     loaderTables: Table[];
     loaderMenus: Menu[];
