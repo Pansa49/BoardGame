@@ -74,6 +74,6 @@ export interface Bill {
 }
 
 export interface HomeLoaderData {
-    resTables: Table[];
-    resMenus: Menu[];
+    loaderTables: Table[];
+    loaderMenus: Menu[];
 }

@@ -3,7 +3,7 @@ import { getTables, getMenus } from "../../api/fetchdata";
 
 export const homeLoader = async (): Promise<HomeLoaderData> => {
     try {
-        const [resTables, resMenus] = await Promise.all([
+        const [loaderTables, loaderMenus] = await Promise.all([
             getTables().catch((err) => {
                 console.error("Failed to fetch tables:", err);
                 return null;
@@ -14,18 +14,21 @@ export const homeLoader = async (): Promise<HomeLoaderData> => {
             })
         ]);
 
-        const tables: Table[] = resTables?.data || (Array.isArray(resTables) ? resTables : []);
-        const menus: Menu[] = resMenus?.data || (Array.isArray(resMenus) ? resMenus : []);
+        const tables: Table[] = loaderTables?.data || (Array.isArray(loaderTables) ? loaderTables : []);
+        const menus: Menu[] = loaderMenus?.data || (Array.isArray(loaderMenus) ? loaderMenus : []);
+
+        // console.log(tables)
+        // console.log(menus)
 
         return {
-            resTables: tables,
-            resMenus: menus
+            loaderTables: tables,
+            loaderMenus: menus
         };
     } catch (error) {
         console.error("Failed to load home data:", error);
         return {
-            resTables: [],
-            resMenus: []
+            loaderTables: [],
+            loaderMenus: []
         };
     }
 };

@@ -7,10 +7,10 @@ import { SideBar } from "../../components/SideBar";
 import { createSessions, closedSession } from "../../api/fetchdata"
 
 export function HomePage() {
-    const { resTables, resMenus } = useLoaderData() as HomeLoaderData;
+    const { loaderTables, loaderMenus } = useLoaderData() as HomeLoaderData;
 
-    const [tables, setTables] = useState<Table[]>(resTables);
-    const [selectedTableId, setSelectedTableId] = useState<number | null>(resTables[0]?.table_id ?? null);
+    const [tables, setTables] = useState<Table[]>(loaderTables);
+    const [selectedTableId, setSelectedTableId] = useState<number | null>(loaderTables[0]?.table_id ?? null);
     const [tempCustomerCount, setTempCustomerCount] = useState<number>(1);
     const [openSideBar, setOpenSideBar] = useState(false);
     const [sidebarMode, setSidebarMode] = useState<SidebarMode>(null);
@@ -20,10 +20,14 @@ export function HomePage() {
     const { updateMenus, updateSessionId, currentSessionId } = useCartContext()
 
     useEffect(() => {
-        if (resMenus.length > 0) {
-            updateMenus(resMenus);
+        if (loaderMenus.length > 0) {
+            updateMenus(loaderMenus);
         }
-    }, [resMenus, updateMenus]);
+    }, [loaderMenus, updateMenus]);
+
+    // useEffect(() => {
+    //     console.log('font tables : ', tables)
+    // })
 
     const getCurrentTimeString = () => {
         const currentTimeString = new Date().toLocaleTimeString('th-TH', {
@@ -47,7 +51,7 @@ export function HomePage() {
     const handleGetMenus = async () => {
         try {
 
-            updateMenus(resMenus);
+            updateMenus(loaderMenus);
 
         } catch (error) {
             console.log("get menus error or something error")
