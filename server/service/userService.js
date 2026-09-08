@@ -148,7 +148,12 @@ exports.closedSession = async (req, res) => {
         // อัปเดต status เป็น 'closed' และลง end_time ปัจจุบัน
         const sql = `
             UPDATE sessions 
-            SET status = 'closed', end_time = CURRENT_TIMESTAMP 
+            SET 
+            end_time = CURRENT_TIMESTAMP ,
+            status = CASE 
+                WHEN EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - start_time)) < 600 THEN 'cancel'
+                ELSE 'closed'
+            END
             WHERE session_id = $1 
             RETURNING *;
         `;
