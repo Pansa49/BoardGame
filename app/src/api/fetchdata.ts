@@ -1,6 +1,4 @@
 import type { OrderItemPayload, FinalBill } from "../../../share/details"
-
-
 const local_api_url = "http://localhost:8080/boardgame";
 
 export async function getMenus() {
@@ -162,7 +160,7 @@ export async function updateCustomerNumBySessionId(session_id: number, value: nu
     }
 }
 
-export async function createBill(session_id: number, items: FinalBill) {
+export async function createBillDB(session_id: number, items: FinalBill) {
     try {
         const payload = {
             session_id: session_id,
