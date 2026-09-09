@@ -74,13 +74,11 @@ export interface Bill {
 }
 
 export interface FinalBill {
-    sessionId: number;
-    totalPlay: number;
-    totalOrder: number;
-    grandTotal: number;
-    payMethod: string;
-    payTime: Date;
-
+    session_id: number;
+    total_play: number;
+    total_order: number;
+    grand_total: number;
+    payment_time: Date;
 }
 
 export interface HomeLoaderData {
