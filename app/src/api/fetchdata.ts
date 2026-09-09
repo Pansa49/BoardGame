@@ -1,4 +1,4 @@
-import type { OrderItemPayload } from "../../../share/details"
+import type { OrderItemPayload, FinalBill } from "../../../share/details"
 
 
 const local_api_url = "http://localhost:8080/boardgame";
@@ -158,6 +158,34 @@ export async function updateCustomerNumBySessionId(session_id: number, value: nu
 
     } catch (error) {
         console.error("Error updating customer count:", error);
+        return { success: false, error };
+    }
+}
+
+export async function createBill(session_id: number, items: FinalBill) {
+    try {
+        const payload = {
+            session_id: session_id,
+            items: items
+        };
+
+        const data = await fetch(`${local_api_url}/bill`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!data.ok) {
+            throw new Error(`HTTP error! status: ${data.status}`);
+        }
+
+        const response = await data.json();
+        return { success: true, response: response };
+
+    } catch (error) {
+        console.error("Error creating bill:", error);
         return { success: false, error };
     }
 }
