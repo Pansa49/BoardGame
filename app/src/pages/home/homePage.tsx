@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { useLoaderData } from "react-router-dom";
 import { useCartContext } from "../../hook/use-cart-context";
 
-import type { Table, SidebarMode, HomeLoaderData } from '../../../../share/details'
+import type { Table, SidebarMode, HomeLoaderData } from '../../../../share/details';
 import { SideBar } from "../../components/SideBar";
-import { createSessions, closedSession } from "../../api/fetchdata"
+import { createSessions, closedSession, createBillDB } from "../../api/fetchdata";
 
 export function HomePage() {
     const { loaderTables, loaderMenus } = useLoaderData() as HomeLoaderData;
@@ -17,17 +17,13 @@ export function HomePage() {
 
     const selectedTable = tables.find(t => t.table_id === selectedTableId) || null;
 
-    const { updateMenus, updateSessionId, currentSessionId } = useCartContext()
+    const { updateMenus, updateSessionId, currentSessionId, finalBill } = useCartContext();
 
     useEffect(() => {
         if (loaderMenus.length > 0) {
             updateMenus(loaderMenus);
         }
     }, [loaderMenus, updateMenus]);
-
-    // useEffect(() => {
-    //     console.log('font tables : ', tables)
-    // })
 
     const getCurrentTimeString = () => {
         const currentTimeString = new Date().toLocaleTimeString('th-TH', {
@@ -56,7 +52,7 @@ export function HomePage() {
         } catch (error) {
             console.log("get menus error or something error")
         }
-    }
+    };
 
     const handleOpenSession = async () => {
         if (!selectedTableId) return;
@@ -92,11 +88,11 @@ export function HomePage() {
             }
 
         } catch (error) {
-            console.error("Error in handleOpenTable:", error);
+            console.error("Error in handleOpenSession:", error);
         }
-    }
+    };
 
-    const handleCloseSession = async () => {
+    const closeSession = async () => {
         if (!currentSessionId || !selectedTableId) return;
 
         console.log("selectedTableId : ", selectedTableId)
@@ -127,9 +123,24 @@ export function HomePage() {
             }
 
         } catch (error) {
-            console.error("Error in handleCloseSession:", error);
+            console.error("Error in closeSession:", error);
         }
-    }
+    };
+
+    const createBill = async () => {
+        try {
+            if (!currentSessionId || !finalBill) return;
+            const res = await createBillDB(currentSessionId, finalBill)
+            console.log(res.response.message)
+        } catch (error) {
+            console.error("Error in createBill:", error);
+        }
+    };
+
+    const handleClickCloseTableAndBill = async () => {
+        await createBill();
+        await closeSession();
+    };
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col overflow-x-hidden">
@@ -166,10 +177,8 @@ export function HomePage() {
                                     onClick={() => {
                                         setSelectedTableId(table.table_id);
                                         if (table.status === "occupied") {
-                                            updateSessionId(table.sessionId ? table.sessionId : 0);
-                                            // console.log("sessionId : ", table.sessionId);
-                                            // console.log(" currentSessionId : ", currentSessionId);
-                                        }
+                                            updateSessionId(table.sessionId ?? null);
+                                        };
                                     }}
                                     className={`relative rounded-2xl border-2 p-5 flex flex-col items-center justify-between aspect-square transition-all duration-300
         hover:border-yellow-400 hover:shadow-lg hover:shadow-yellow-400/20
@@ -266,7 +275,7 @@ export function HomePage() {
                                         <button
                                             onClick={() => {
                                                 handleGetMenus();
-                                                handleOpenSidebar('Drink')
+                                                handleOpenSidebar('Drink');
                                             }}
                                             className="w-full py-3 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10"
                                         >
@@ -285,7 +294,7 @@ export function HomePage() {
                                             </button>
 
                                             <button
-                                                onClick={handleCloseSession}
+                                                onClick={handleClickCloseTableAndBill}
                                                 className="w-full py-2 rounded-xl text-[14px] font-bold bg-rose-900/40 hover:bg-rose-700 text-white border border-rose-500/20 transition-all uppercase tracking-wider"
                                             >
                                                 ❌ ปิดโต๊ะ / ยกเลิกโต๊ะ
