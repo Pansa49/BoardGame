@@ -4,7 +4,7 @@ import { useCartContext } from "../../hook/use-cart-context";
 
 import type { Table, SidebarMode, HomeLoaderData } from '../../../../share/details';
 import { SideBar } from "../../components/SideBar";
-import { createSessions, closedSession, createBillDB } from "../../api/fetchdata";
+import { createSessions, closedSession } from "../../api/fetchdata";
 
 export function HomePage() {
     const { loaderTables, loaderMenus } = useLoaderData() as HomeLoaderData;
@@ -17,7 +17,7 @@ export function HomePage() {
 
     const selectedTable = tables.find(t => t.table_id === selectedTableId) || null;
 
-    const { updateMenus, updateSessionId, currentSessionId, finalBill } = useCartContext();
+    const { updateMenus, updateSessionId, currentSessionId } = useCartContext();
 
     useEffect(() => {
         if (loaderMenus.length > 0) {
@@ -25,13 +25,15 @@ export function HomePage() {
         }
     }, [loaderMenus, updateMenus]);
 
+    useEffect(() => {
+        console.log("selectedTable : ", selectedTableId)
+    }, [selectedTableId]);
+
     const getCurrentTimeString = () => {
-        const currentTimeString = new Date().toLocaleTimeString('th-TH', {
+        return new Date().toLocaleTimeString('th-TH', {
             hour: '2-digit',
             minute: '2-digit'
         });
-
-        return currentTimeString; // ผลลัพธ์จะได้เช่น "14:30"
     };
 
     const handleOpenSidebar = (mode: SidebarMode) => {
@@ -46,39 +48,37 @@ export function HomePage() {
 
     const handleGetMenus = async () => {
         try {
-
             updateMenus(loaderMenus);
-
         } catch (error) {
-            console.log("get menus error or something error")
+            console.error("Error getting menus:", error);
         }
     };
 
     const handleOpenSession = async () => {
         if (!selectedTableId) return;
 
-        const customerCount = tempCustomerCount || 1; //default =1
+        const customerCount = tempCustomerCount || 1;
 
         try {
-            const res = await createSessions(selectedTableId, customerCount)
+            const res = await createSessions(selectedTableId, customerCount);
 
             if (res.success && res.response) {
                 const newSessionId = res.response.data.newSession.session_id;
                 const startTime = getCurrentTimeString();
 
-                updateSessionId(newSessionId)
+                updateSessionId(newSessionId);
 
-                setTables(prev => prev.map(t => {
-                    if (t.table_id === selectedTableId) {
+                setTables(prev => prev.map(table => {
+                    if (table.table_id === selectedTableId) {
                         return {
-                            ...t,
+                            ...table,
                             status: "occupied",
                             startTime: startTime,
                             customerCount: customerCount,
                             sessionId: newSessionId
                         };
                     }
-                    return t;
+                    return table;
                 }));
                 setTempCustomerCount(1);
                 console.log(res.response.message)
@@ -92,27 +92,23 @@ export function HomePage() {
         }
     };
 
-    const closeSession = async () => {
+    const handleCloseSession = async () => {
         if (!currentSessionId || !selectedTableId) return;
 
-        console.log("selectedTableId : ", selectedTableId)
-        console.log("currentSessionId : ", currentSessionId)
-        console.log("selectedTable : ", selectedTable)
-
         try {
-            const res = await closedSession(currentSessionId)
+            const res = await closedSession(currentSessionId);
             if (res.success && res.response?.status === "success") {
-                setTables(prev => prev.map(t => {
-                    if (t.table_id === selectedTableId) {
+                setTables(prev => prev.map(table => {
+                    if (table.table_id === selectedTableId) {
                         return {
-                            ...t,
+                            ...table,
                             status: "available",
                             startTime: null,
                             customerCount: 0,
                             sessionId: null
                         };
                     }
-                    return t;
+                    return table;
                 }));
 
                 updateSessionId(null);
@@ -121,25 +117,9 @@ export function HomePage() {
 
                 console.log("ปิดเซสชันสำเร็จ:", res.response.message);
             }
-
         } catch (error) {
             console.error("Error in closeSession:", error);
         }
-    };
-
-    const createBill = async () => {
-        try {
-            if (!currentSessionId || !finalBill) return;
-            const res = await createBillDB(currentSessionId, finalBill)
-            console.log(res.response.message)
-        } catch (error) {
-            console.error("Error in createBill:", error);
-        }
-    };
-
-    const handleClickCloseTableAndBill = async () => {
-        await createBill();
-        await closeSession();
     };
 
     return (
@@ -294,7 +274,7 @@ export function HomePage() {
                                             </button>
 
                                             <button
-                                                onClick={handleClickCloseTableAndBill}
+                                                onClick={handleCloseSession}
                                                 className="w-full py-2 rounded-xl text-[14px] font-bold bg-rose-900/40 hover:bg-rose-700 text-white border border-rose-500/20 transition-all uppercase tracking-wider"
                                             >
                                                 ❌ ปิดโต๊ะ / ยกเลิกโต๊ะ
