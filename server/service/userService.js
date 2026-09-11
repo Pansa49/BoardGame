@@ -343,3 +343,50 @@ exports.updateCustomerCountBySessionId = async (req, res) => {
         });
     }
 };
+
+exports.createBill = async (req, res) => {
+    const { session_id, items } = req.body;
+
+    if (!session_id || !items || !Array.isArray(items)) {
+        return res.status(400).json({
+            status: "error",
+            message: "Missing or invalid required fields (session_id or items array)"
+        });
+    }
+
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        const sql = `
+            UPDATE bills 
+            SET session_id = $1 
+            WHERE session_id = $2
+            RETURNING *;
+        `;
+
+        const result = await pool.query(sql, [session_id, session_id]);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "Session not found"
+            });
+        }
+
+        res.status(200).json({
+            status: "success",
+            message: "Updated customer count successfully",
+            data: result.rows
+        });
+
+    } catch (error) {
+        console.error("Update Customer Count Error:", error);
+        res.status(500).json({
+            status: "error",
+            message: "Failed to update customer count",
+            error: error.message
+        });
+    }
+}
