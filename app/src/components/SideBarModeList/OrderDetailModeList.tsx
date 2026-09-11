@@ -33,6 +33,8 @@ export function OrderDetailModeList() {
             setSelectedCustomers([]);
             setBilledOrders([]);
             setBilledCustomers([]);
+            setShowSelectOrder(0);
+            setShowSelectCustomer(0);
             setBill(null);
             updateSessionId(currentSessionId);
 
