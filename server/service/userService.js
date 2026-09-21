@@ -345,47 +345,43 @@ exports.updateCustomerCountBySessionId = async (req, res) => {
 };
 
 exports.createBill = async (req, res) => {
-    const { session_id, items } = req.body;
+    const item = req.body;
 
-    if (!session_id || !items || !Array.isArray(items)) {
+    if (!item) {
         return res.status(400).json({
             status: "error",
-            message: "Missing or invalid required fields (session_id or items array)"
+            message: "Missing or invalid required fields (item)"
         });
     }
 
-    const client = await pool.connect();
-
     try {
-        await client.query('BEGIN');
-
         const sql = `
-            UPDATE bills 
-            SET session_id = $1 
-            WHERE session_id = $2
+            INSERT INTO bills (session_id, 
+            total_play_price,
+            total_order_price,
+            grand_total) 
+            VALUES ($1, $2,$3,$4) 
             RETURNING *;
         `;
 
-        const result = await pool.query(sql, [session_id, session_id]);
-
-        if (result.rowCount === 0) {
-            return res.status(404).json({
-                status: "error",
-                message: "Session not found"
-            });
-        }
+        const result = await pool.query(sql, [
+            item.session_id,
+            item.total_play_price,
+            item.total_order_price,
+            item.grand_total
+        ]);
 
         res.status(200).json({
             status: "success",
-            message: "Updated customer count successfully",
+            message: "Create Bill successfully",
             data: result.rows
         });
 
     } catch (error) {
-        console.error("Update Customer Count Error:", error);
+        console.error("Create Bill Error:", error);
         res.status(500).json({
             status: "error",
-            message: "Failed to update customer count",
+            message: "Failed to create Bill",
             error: error.message
         });
     }
