@@ -1,12 +1,11 @@
 import { createContext, useState, useEffect } from "react";
-import type { Menu, Bill, FinalBill } from '../../../share/details';
+import type { Menu, Bill } from '../../../share/details';
 
 type CartContextType = {
     menus: Menu[];
     tempOrders: Record<number, number>;
     currentSessionId: number | null;
     totalBill: Bill[];
-    finalBill: FinalBill | null;
 
     updateMenus: (menu: Menu[]) => void;
     updateTotalBill: (bill: Bill) => void;
@@ -21,19 +20,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     const [menus, setMenus] = useState<Menu[]>([]);
     const [totalBill, setTotalBill] = useState<Bill[]>([]);
-    const [finalBill, setFinalBill] = useState<FinalBill | null>(null);
     const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
     const [tempOrders, setTempOrders] = useState<Record<number, number>>({});
 
     useEffect(() => {
         console.log("currentSessionId : ", currentSessionId);
         console.log("totalBill : ", totalBill);
-        console.log("finalBill : ", finalBill);
-    }, [totalBill, currentSessionId, finalBill]);
-
-    useEffect(() => {
-        calculateFinalBill()
-    }, [totalBill, currentSessionId])
+    }, [totalBill, currentSessionId]);
 
     const updateMenus = (menu: Menu[]) => { setMenus(menu); };
 
@@ -41,7 +34,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setCurrentSessionId(sessionId);
         setTotalBill([]);
         setTempOrders({});
-        setFinalBill(null)
     };
 
     const resetTempOrders = () => setTempOrders({});
@@ -66,30 +58,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     const updateTotalBill = (bill: Bill) => { setTotalBill((prev) => [...prev, bill]); };
 
-    function calculateFinalBill() {
-        if (!currentSessionId || totalBill.length === 0) {
-            setFinalBill(null);
-            return;
-        }
-
-        const totalItem = totalBill.reduce((sum, item) => ({
-            totalPlay: sum.totalPlay + item.play_price,
-            totalOrder: sum.totalOrder + item.order_price,
-        }), { totalPlay: 0, totalOrder: 0 })
-
-        setFinalBill({
-            session_id: currentSessionId,
-            total_play: totalItem.totalPlay,
-            total_order: totalItem.totalOrder,
-            grand_total: totalItem.totalPlay + totalItem.totalOrder,
-            payment_time: new Date()
-        });
-    };
-
     return (
         <CartContext.Provider
             value={{
-                menus, currentSessionId, totalBill, tempOrders, finalBill,
+                menus, currentSessionId, totalBill, tempOrders,
                 updateMenus, updateTotalBill, updateSessionId, updateOrderQty, resetTempOrders,
             }}
         >

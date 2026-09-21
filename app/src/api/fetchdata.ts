@@ -1,4 +1,4 @@
-import type { OrderItemPayload, FinalBill } from "../../../share/details"
+import type { OrderItemPayload, Bill } from "../../../share/details"
 const local_api_url = "http://localhost:8080/boardgame";
 
 export async function getMenus() {
@@ -160,15 +160,17 @@ export async function updateCustomerNumBySessionId(session_id: number, value: nu
     }
 }
 
-export async function createBillDB(session_id: number, items: FinalBill) {
+export async function updateBillDB(session_id: number, bill: Bill) {
     try {
         const payload = {
             session_id: session_id,
-            items: items
+            total_play_price: bill.play_price,
+            total_order_price: bill.order_price,
+            grand_total: bill.total_price,
         };
 
         const data = await fetch(`${local_api_url}/bill`, {
-            method: 'POST',
+            method: 'Patch',
             headers: {
                 'Content-Type': 'application/json',
             },
