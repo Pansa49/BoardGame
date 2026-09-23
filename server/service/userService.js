@@ -393,7 +393,7 @@ exports.updateBill = async (req, res) => {
         });
     }
 }
-exports.updateBillItem = async (req, res) => {
+exports.createBillItem = async (req, res) => {
     const { session_id, customer_pay_count } = req.body;
 
     if (!session_id || customer_pay_count === undefined) {
@@ -405,18 +405,16 @@ exports.updateBillItem = async (req, res) => {
 
     try {
         const sql = `
-            UPDATE bill_items
-            SET 
-                customer_pay_count = $1
-            WHERE bill_id IN (
-                SELECT bill_id FROM bills WHERE session_id = $2
-            )
-            AND order_item_id IN (
-                SELECT oi.item_id 
-                FROM order_items oi 
-                JOIN orders o ON oi.order_id = o.order_id 
-                WHERE o.session_id = $2
-            );
+            INSERT INTO bill_items (bill_id, order_item_id, customer_pay_count)
+            SELECT 
+                b.bill_id,
+                oi.item_id,
+                $1 AS customer_pay_count
+            FROM orders o
+            JOIN order_items oi ON o.order_id = oi.order_id
+            JOIN bills b ON b.session_id = o.session_id
+            WHERE o.session_id = $2
+            RETURNING *;
         `;
 
         const result = await pool.query(sql, [customer_pay_count, session_id]);
@@ -424,21 +422,21 @@ exports.updateBillItem = async (req, res) => {
         if (result.rowCount === 0) {
             return res.status(404).json({
                 status: "error",
-                message: "Session not found"
+                message: "Cannot create bill items. Please make sure the bill and orders exist for this session."
             });
         }
 
-        res.status(200).json({
+        res.status(201).json({
             status: "success",
-            message: "Updated customer count successfully",
+            message: "Created bill items successfully",
             data: result.rows
         });
 
     } catch (error) {
-        console.error("Update Bill Item Error:", error);
+        console.error("Create Bill Item Error:", error);
         res.status(500).json({
             status: "error",
-            message: "Failed to update Bill Item",
+            message: "Failed to create Bill Item",
             error: error.message
         });
     }
