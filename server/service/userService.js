@@ -84,7 +84,7 @@ exports.createOrders = async (req, res) => {
     }
 };
 
-exports.createSessions = async (req, res) => {
+exports.createSessionsAndBills = async (req, res) => {
 
     const { table_id, customer_count } = req.body;
 
@@ -108,22 +108,29 @@ exports.createSessions = async (req, res) => {
         const result = await client.query(createSessionSql, [table_id, customer_count]);
         const newSession = result.rows[0];
 
+        const createBillSql = `
+            INSERT INTO bills (session_id, total_play_price, total_order_price, grand_total, status)
+            VALUES ($1, 0, 0, 0, 'PENDING')
+            RETURNING *;
+        `;
+        await client.query(createBillSql, [newSession.session_id]);
+
         await client.query('COMMIT');
 
         res.status(201).json({
             status: "success",
-            message: "Add All Orders successfully",
+            message: "Session created successfully",
             data: { newSession }
         });
 
     } catch (error) {
 
         await client.query('ROLLBACK');
-        console.error("Database Order Error:", error);
+        console.error("Database Session Error:", error);
 
         res.status(500).json({
             status: "error",
-            message: "Failed to add orders",
+            message: "Failed to create session",
             error: error.message
         });
     } finally {
@@ -131,7 +138,7 @@ exports.createSessions = async (req, res) => {
     }
 }
 
-exports.closedSession = async (req, res) => {
+exports.closedSessionAndBill = async (req, res) => {
     const { session_id } = req.body;
 
     if (!session_id) {
@@ -146,7 +153,7 @@ exports.closedSession = async (req, res) => {
         await client.query('BEGIN');
 
         // อัปเดต status เป็น 'closed' และลง end_time ปัจจุบัน
-        const sql = `
+        const updateSessionSql = `
             UPDATE sessions 
             SET 
             end_time = CURRENT_TIMESTAMP ,
@@ -157,7 +164,7 @@ exports.closedSession = async (req, res) => {
             WHERE session_id = $1 
             RETURNING *;
         `;
-        const result = await client.query(sql, [session_id]);
+        const sessionResult = await client.query(updateSessionSql, [session_id]);
 
         if (result.rowCount === 0) {
             await client.query('ROLLBACK');
@@ -344,7 +351,7 @@ exports.updateCustomerCountBySessionId = async (req, res) => {
     }
 };
 
-exports.createBill = async (req, res) => {
+exports.updateBill = async (req, res) => {
     const item = req.body;
 
     if (!item) {
@@ -382,6 +389,56 @@ exports.createBill = async (req, res) => {
         res.status(500).json({
             status: "error",
             message: "Failed to create Bill",
+            error: error.message
+        });
+    }
+}
+exports.updateBillItem = async (req, res) => {
+    const { session_id, customer_pay_count } = req.body;
+
+    if (!session_id || customer_pay_count === undefined) {
+        return res.status(400).json({
+            status: "error",
+            message: "Missing required fields (session_id or customer_pay_count)"
+        });
+    }
+
+    try {
+        const sql = `
+            UPDATE bill_items
+            SET 
+                customer_pay_count = $1
+            WHERE bill_id IN (
+                SELECT bill_id FROM bills WHERE session_id = $2
+            )
+            AND order_item_id IN (
+                SELECT oi.item_id 
+                FROM order_items oi 
+                JOIN orders o ON oi.order_id = o.order_id 
+                WHERE o.session_id = $2
+            );
+        `;
+
+        const result = await pool.query(sql, [customer_pay_count, session_id]);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "Session not found"
+            });
+        }
+
+        res.status(200).json({
+            status: "success",
+            message: "Updated customer count successfully",
+            data: result.rows
+        });
+
+    } catch (error) {
+        console.error("Update Bill Item Error:", error);
+        res.status(500).json({
+            status: "error",
+            message: "Failed to update Bill Item",
             error: error.message
         });
     }

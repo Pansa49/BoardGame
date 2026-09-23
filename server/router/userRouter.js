@@ -16,8 +16,8 @@ userRouter.route('/order')
     .post(userService.createOrders)
 
 userRouter.route('/session')
-    .post(userService.createSessions)
-    .put(userService.closedSession)
+    .post(userService.createSessionsAndBills)
+    .put(userService.closedSessionAndBill)
 
 userRouter.route('/session/:session_id/orders')
     .get(userService.getOrdersBySessionId)
@@ -27,6 +27,9 @@ userRouter.route('/session/:session_id/customer-count')
     .put(userService.updateCustomerCountBySessionId)
 
 userRouter.route('/bill')
-    .post(userService.createBill)
+    .put(userService.updateBill)
+
+userRouter.route('/bill-item')
+    .put(userService.updateBill)
 
 module.exports = userRouter;
