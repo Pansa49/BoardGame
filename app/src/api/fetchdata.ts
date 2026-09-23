@@ -160,7 +160,7 @@ export async function updateCustomerNumBySessionId(session_id: number, value: nu
     }
 }
 
-export async function updateBillDB(session_id: number, bill: Bill) {
+export async function updateBill(session_id: number, bill: Bill) {
     try {
         const payload = {
             session_id: session_id,
@@ -170,7 +170,7 @@ export async function updateBillDB(session_id: number, bill: Bill) {
         };
 
         const data = await fetch(`${local_api_url}/bill`, {
-            method: 'Patch',
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -186,6 +186,34 @@ export async function updateBillDB(session_id: number, bill: Bill) {
 
     } catch (error) {
         console.error("Error creating bill:", error);
+        return { success: false, error };
+    }
+}
+
+export async function updateBillItemBySessionId(session_id: number, selectedCustomer: number) {
+    try {
+        const payload = {
+            session_id: session_id,
+            customer_pay_count: selectedCustomer,
+        };
+
+        const response = await fetch(`${local_api_url}/bill-item`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return { success: true, data: data };
+
+    } catch (error) {
+        console.error("Error creating bill item:", error);
         return { success: false, error };
     }
 }

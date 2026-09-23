@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getOrderBySessionId, getCustomerNumBySessionId } from '../../api/fetchdata';
+import { getOrderBySessionId, getCustomerNumBySessionId, updateBillItemBySessionId } from '../../api/fetchdata';
 import { useCartContext } from "../../hook/use-cart-context";
 import type { Bill, OrderItem } from "../../../../share/details";
 
@@ -133,13 +133,21 @@ export function OrderDetailModeList() {
     };
 
     // ออกบิล และเก็บค่าแบบไม่ซ้ำกัน (ป้องกัน bug array ซ้ำ)
-    const handleClickCreateBill = () => {
+    const handleClickCreateBill = async () => {
         if (!bill) return;
 
         updateTotalBill(bill);
 
         setBilledCustomers((prev) => Array.from(new Set([...prev, ...selectedCustomers])));
         setBilledOrders((prev) => Array.from(new Set([...prev, ...selectedOrders])));
+
+        // api here updateBillItemBySessionId
+        try {
+            if (!currentSessionId) return;
+            updateBillItemBySessionId(currentSessionId, selectedCustomers.length)
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
 
         setSelectedCustomers([]);
         setSelectedOrders([]);
