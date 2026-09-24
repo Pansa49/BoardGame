@@ -37,7 +37,7 @@ export interface Table {
 }
 
 export type MenuModeListProps = {
-    mode: 'Food' | 'Drink';
+    mode: 'Menu';
     menus: Menu[];
     tempOrders: Record<number, number>;
     onUpdateOrderQty?: (productId: number, delta: number) => void;
@@ -50,7 +50,7 @@ export type OrderItemPayload = {
     unit_price: number;
 }
 
-export type SidebarMode = 'customer' | 'Food' | 'Drink' | 'Order' | 'Bill' | null;
+export type SidebarMode = 'Menu' | 'customer' | 'Order' | 'Bill' | null;
 
 export type SideBarProps = {
     isOpen: boolean;
