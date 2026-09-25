@@ -8,11 +8,7 @@ export function MenuModeList({ mode, menus, tempOrders, onUpdateOrderQty, onSucc
     const { resetTempOrders, currentSessionId } = useCartContext();
 
     // 1. กรองเมนูตาม Mode (Food/Drink)
-    const filteredMenus = menus.filter((item) => {
-        if (mode === 'Drink') return item.category === 'Drink';
-        if (mode === 'Food') return item.category === 'Food';
-        return true;
-    });
+    const filteredMenus = mode === 'Menu' ? menus : [];
 
     // 2. คำนวณราคารวมของหมวดนี้
     const totalAmount = filteredMenus.reduce((sum, item) => {
@@ -53,39 +49,24 @@ export function MenuModeList({ mode, menus, tempOrders, onUpdateOrderQty, onSucc
         }
     };
 
-    if (filteredMenus.length === 0) {
+    const MenuItem = (category: string, textColor: string) => {
         return (
-            <div className="text-center text-slate-500 py-12 text-sm">
-                ไม่มีรายการเมนูในหมวดนี้
-            </div>
-        );
-    }
-
-    return (
-        <div id="menu-container"
-            className="flex flex-col h-full gap-2.5">
-            <div className="flex-1 overflow-y-auto flex flex-col gap-2.5 pr-1">
-                {filteredMenus.map((item) => {
+            <div>
+                {filteredMenus.filter((item) => item.category === category).map((item) => {
                     const qty = tempOrders[item.product_id] || 0;
-
                     return (
                         <div
                             key={item.product_id}
                             className="flex justify-between items-center bg-slate-950/70 border border-slate-800 p-3.5 rounded-xl hover:border-slate-700 transition-all shadow-sm"
                         >
-                            {/* ฝั่งซ้าย: ชื่อเมนูและราคา */}
+                            {/* ฝั่งซ้าย: ชื่อ ราคา */}
                             <div className="flex flex-col gap-0.5">
                                 <span className="text-sm font-bold text-slate-100">
                                     {item.name}
                                 </span>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs text-amber-400 font-mono font-semibold">
-                                        {parseFloat(String(item.price))} บาท
-                                    </span>
-                                    <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded-md border border-slate-800">
-                                        {item.category}
-                                    </span>
-                                </div>
+                                <span className={`text-left self-start text-xs text-${textColor} font-mono font-semibold`}>
+                                    {Number(item.price).toLocaleString()} บาท
+                                </span>
                             </div>
 
                             {/* ฝั่งขวา: ปุ่มบวกลบ */}
@@ -99,7 +80,7 @@ export function MenuModeList({ mode, menus, tempOrders, onUpdateOrderQty, onSucc
                                         >
                                             -
                                         </button>
-                                        <span className="text-sm font-bold font-mono text-amber-400 min-w-[18px] text-center">
+                                        <span className={`text-sm font-bold font-mono text-${textColor} min-w-[18px] text-center`}>
                                             {qty}
                                         </span>
                                     </>
@@ -107,7 +88,7 @@ export function MenuModeList({ mode, menus, tempOrders, onUpdateOrderQty, onSucc
                                 <button
                                     type="button"
                                     onClick={() => onUpdateOrderQty?.(item.product_id, 1)}
-                                    className="w-7 h-7 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold flex items-center justify-center text-sm shadow-md active:scale-95 transition-all"
+                                    className={`w-7 h-7 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold flex items-center justify-center text-sm shadow-md active:scale-95 transition-all`}
                                 >
                                     +
                                 </button>
@@ -116,12 +97,50 @@ export function MenuModeList({ mode, menus, tempOrders, onUpdateOrderQty, onSucc
                     );
                 })}
             </div>
+        )
+    }
 
+    if (filteredMenus.length === 0) {
+        return (
+            <div className="text-center text-slate-500 py-12 text-sm">
+                ไม่มีรายการเมนูในหมวดนี้
+            </div>
+        );
+    }
+
+    return (
+        <div id="menu-container" className="flex flex-col h-full gap-2.5">
+            <div className="flex-1 overflow-y-auto flex flex-col gap-5 pr-1">
+
+                {/* ================= 1. หมวดหมู่ Food ================= */}
+                {filteredMenus.some(item => item.category === 'Food') && (
+                    <div className="flex flex-col gap-2.5">
+                        <div className="flex items-center gap-2 sticky top-0 backdrop-blur-md py-1.5 z-10 border-b border-slate-800">
+                            <span className="text-base">🍔</span>
+                            <h3 className="text-sm font-bold text-amber-400 uppercase tracking-wider">Food</h3>
+                        </div>
+                        {MenuItem("Food", "amber-400")}
+                    </div>
+                )}
+
+                {/* ================= 2. หมวดหมู่ Drink ================= */}
+                {filteredMenus.some(item => item.category === 'Drink') && (
+                    <div className="flex flex-col gap-2.5">
+                        <div className="flex items-center gap-2 sticky top-0 backdrop-blur-md py-1.5 z-10 border-b border-slate-800">
+                            <span className="text-base">🥤</span>
+                            <h3 className="text-sm font-bold text-sky-600 uppercase tracking-wider">Drink</h3>
+                        </div>
+                        {MenuItem("Drink", "sky-600")}
+                    </div>
+                )}
+
+            </div>
+
+            {/* ส่วนสรุปราคารวมและปุ่มบันทึก */}
             <div className="flex flex-col mt-auto pt-2">
                 <div className="border-t border-slate-800 pt-4 bg-slate-900">
                     <div className="bg-slate-950 p-4 rounded-xl border border-slate-800/80 mb-4 flex justify-between items-center">
                         <span className="text-xs text-slate-400">รวมค่าอาหารของหมวดนี้:</span>
-                        {/* แสดงราคารวมที่คำนวณไว้ */}
                         <span className="text-lg font-bold text-amber-400">
                             {totalAmount.toLocaleString()} บาท
                         </span>

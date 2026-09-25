@@ -246,20 +246,11 @@ export function HomePage() {
                                         <button
                                             onClick={() => {
                                                 handleGetMenus();
-                                                handleOpenSidebar('Food');
+                                                handleOpenSidebar('Menu');
                                             }}
                                             className="w-full py-3 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10"
                                         >
-                                            🍔 เปิดเมนูสั่งอาหาร
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                handleGetMenus();
-                                                handleOpenSidebar('Drink');
-                                            }}
-                                            className="w-full py-3 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10"
-                                        >
-                                            🥤 สั่งเครื่องดื่ม
+                                            🍔 เมนูอาหาร / 🥤เครื่องดื่ม
                                         </button>
                                     </div>
 
