@@ -15,26 +15,20 @@ export function OrderDetailModeList() {
 
     const [customerCount, setCustomerCount] = useState<number>(1);
     const [playPrice, setPlayPrice] = useState<number>(0);
-
-    const [showSelectOrder, setShowSelectOrder] = useState<number>(0);
-    const [showSelectCustomer, setShowSelectCustomer] = useState<number>(0);
-
     const [bill, setBill] = useState<Bill | null>(null);
 
     const { currentSessionId, updateTotalBill, updateSessionId } = useCartContext();
 
-    // 1. useEffect ตัวที่ 1: ยิง API ครั้งเดียวเมื่อเปลี่ยน Session (ไม่เกี่ยวกับ checkbox)
+    // Fetch Session Data เมื่อเปลี่ยน Session
     useEffect(() => {
         const fetchSessionData = async () => {
             if (!currentSessionId) return;
 
-            // Reset selection state เมื่อเปลี่ยน Session ป้องกัน bug ข้อมูลข้าม session
+            // Reset Selection State
             setSelectedOrders([]);
             setSelectedCustomers([]);
             setBilledOrders([]);
             setBilledCustomers([]);
-            setShowSelectOrder(0);
-            setShowSelectCustomer(0);
             setBill(null);
             updateSessionId(currentSessionId);
 
@@ -45,6 +39,8 @@ export function OrderDetailModeList() {
                 ]);
 
                 const orders: OrderItem[] = orderRes?.data || [];
+
+                // แตกรายการตาม Quantity เพื่อให้เลือกเป็นรายชิ้นได้
                 const expandedOrders = orders.flatMap((item: OrderItem) =>
                     Array.from({ length: item.quantity }, () => ({
                         ...item,
@@ -57,25 +53,23 @@ export function OrderDetailModeList() {
 
                 const customerData = customerRes?.data?.[0];
                 if (customerData) {
-                    const count = customerData.customer_count ?? 1;
-                    setCustomerCount(count);
+                    setCustomerCount(customerData.customer_count ?? 1);
 
                     const basePlayPrice = Number(customerData.play_price ?? 0);
                     const rawStartTime = customerData.start_time;
                     const startTime = rawStartTime ? new Date(rawStartTime).getTime() : 0;
                     const duration = Math.max(0, Date.now() - startTime);
 
-                    const seconds = Math.floor(duration / 1000);
-                    const minutes = Math.floor(seconds / 60);
-                    const hours = Math.floor(minutes / 60);
+                    const totalMinutes = Math.floor(duration / (1000 * 60));
+                    const hours = Math.floor(totalMinutes / 60);
+                    const remainingMinutes = totalMinutes % 60;
 
                     let playTime = hours;
-                    if (minutes % 60 > 15) playTime += 1;
+                    if (remainingMinutes > 15) playTime += 1;
                     if (duration > 0 && playTime === 0) playTime = 1;
 
                     setPlayPrice(basePlayPrice * playTime);
                 }
-
             } catch (error) {
                 console.error('Error fetching session data:', error);
             }
@@ -84,7 +78,7 @@ export function OrderDetailModeList() {
         fetchSessionData();
     }, [currentSessionId]);
 
-    // 2. useEffect ตัวที่ 2: คำนวณบิลใหม่ทันทีเฉพาะเวลาติ๊กเลือก (ไม่ต้องยิง API)
+    // คำนวณ Bill Object เมื่อมีการเลือก/ยกเลิก Checkbox
     useEffect(() => {
         if (selectedCustomers.length === 0 && selectedOrders.length === 0) {
             setBill(null);
@@ -104,56 +98,58 @@ export function OrderDetailModeList() {
             total_price: totalPlayPrice + orderPrice
         });
 
-        // console.log("totalPlayPrice : ", totalPlayPrice);
-        // console.log("orderPrice : ", orderPrice);
-
-        setShowSelectCustomer(totalPlayPrice);
-        setShowSelectOrder(orderPrice);
-
     }, [selectedCustomers, selectedOrders, playPrice, orderDetail]);
 
     const handleToggleSelectOrder = (index: number) => {
         if (billedOrders.includes(index)) return;
 
-        setSelectedOrders((prev) =>
-            prev.includes(index)
-                ? prev.filter((i) => i !== index)
-                : [...prev, index]
+        setSelectedOrders((prev) => prev.includes(index)
+            ? prev.filter((i) => i !== index)
+            : [...prev, index]
         );
     };
 
     const handleToggleSelectCustomer = (id: number) => {
         if (billedCustomers.includes(id)) return;
 
-        setSelectedCustomers((prev) =>
-            prev.includes(id)
-                ? prev.filter((item) => item !== id)
-                : [...prev, id]
+        setSelectedCustomers((prev) => prev.includes(id)
+            ? prev.filter((item) => item !== id)
+            : [...prev, id]
         );
     };
 
-    // ออกบิล และเก็บค่าแบบไม่ซ้ำกัน (ป้องกัน bug array ซ้ำ)
     const handleClickCreateBill = async () => {
-        if (!bill) return;
+        if (!bill || !currentSessionId) return;
 
-        updateTotalBill(bill);
+        const selectedOrderProductIds = selectedOrders
+            .map((i) => orderDetail[i]?.product_id)
+            .filter((id): id is number => id !== undefined);
 
-        setBilledCustomers((prev) => Array.from(new Set([...prev, ...selectedCustomers])));
-        setBilledOrders((prev) => Array.from(new Set([...prev, ...selectedOrders])));
-
-        // api here updateBillItemBySessionId
         try {
-            if (!currentSessionId) return;
-            updateBillItemBySessionId(currentSessionId, selectedCustomers.length)
-        } catch (error) {
-            console.error('Error fetching data:', error);
-        }
+            console.log('currentSessionId : ', currentSessionId)
+            console.log('selectedCustomers : ', selectedCustomers.length)
+            console.log('selectedOrderProductIds : ', selectedOrderProductIds)
+            await updateBillItemBySessionId(currentSessionId, selectedCustomers.length, selectedOrderProductIds);
 
-        setSelectedCustomers([]);
-        setSelectedOrders([]);
-        setShowSelectCustomer(0);
-        setShowSelectOrder(0);
+            updateTotalBill(bill);
+
+            // Mark ว่ารายการไหนออกบิลไปแล้ว
+            setBilledCustomers((prev) => Array.from(new Set([...prev, ...selectedCustomers])));
+            setBilledOrders((prev) => Array.from(new Set([...prev, ...selectedOrders])));
+
+            // Reset การเลือก
+            setSelectedCustomers([]);
+            setSelectedOrders([]);
+            setBill(null);
+
+        } catch (error) {
+            alert("เกิดข้อผิดพลาดในการสร้างบิล กรุณาลองใหม่อีกครั้ง");
+            console.error('Error creating bill:', error);
+        }
     };
+
+    const showSelectOrder = bill?.order_price ?? 0;
+    const showSelectCustomer = bill?.play_price ?? 0;
 
     return (
         <div id="bill-container" className="flex flex-col gap-4">
@@ -182,16 +178,16 @@ export function OrderDetailModeList() {
                             />
                             <span>ลูกค้าคนที่ {customerId} </span>
                             <div className="flex-1 border-b border-dotted border-slate-700 h-full mx-1"></div>
-                            <span>{playPrice} </span>
+                            <span>{playPrice} บาท</span>
                         </label>
                     );
                 })}
             </div>
 
             <div id="order-container"
-                className={`${orderDetail.length
+                className={orderDetail.length
                     ? "bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col gap-2 mb-4"
-                    : ""}`}>
+                    : ""}>
                 <div className="flex flex-col justify-between text-xs text-slate-400">
                     {orderDetail.map((item, index) => {
                         const isSelected = selectedOrders.includes(index);
@@ -204,12 +200,11 @@ export function OrderDetailModeList() {
                                 className={`flex items-center gap-2 py-1 ${isBilled ? "cursor-not-allowed opacity-80" : "cursor-pointer"}`}
                             >
                                 <div className={`w-4 h-4 rounded-full border shrink-0 transition-colors ${isBilled
-                                    ? "bg-amber-500 border-amber-500" // ออกบิลแล้ว = เหลือง
+                                    ? "bg-amber-500 border-amber-500"
                                     : isSelected
-                                        ? "bg-emerald-500 border-emerald-500" // เลือกอยู่ = เขียว
+                                        ? "bg-emerald-500 border-emerald-500"
                                         : "border-slate-600 bg-slate-900"
-                                    }`}
-                                />
+                                    }`} />
 
                                 <span className={`font-medium ${isBilled ? "text-amber-300" : "text-slate-200"}`}>
                                     {item.product_name}
@@ -229,16 +224,13 @@ export function OrderDetailModeList() {
                 </div>
             </div>
 
-            <div
-                className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col gap-2 mb-4">
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col gap-2 mb-4">
                 <div className="flex justify-between text-xs text-slate-400">
                     <span>ค่าเครื่องดื่ม & อาหาร</span>
                     <span className="font-bold text-slate-200">{showSelectOrder} บาท</span>
                 </div>
                 <div className="flex justify-between text-xs text-slate-400">
-                    <span>
-                        ค่าชั่วโมงบอร์ดเกม
-                    </span>
+                    <span>ค่าชั่วโมงบอร์ดเกม</span>
                     <span className="font-bold text-slate-200">{showSelectCustomer} บาท</span>
                 </div>
                 <div className="border-t border-slate-800 my-1 pt-2 flex justify-between text-sm font-extrabold text-white">
