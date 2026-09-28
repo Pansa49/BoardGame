@@ -84,8 +84,7 @@ exports.createOrders = async (req, res) => {
     }
 };
 
-exports.createSessionsAndBills = async (req, res) => {
-
+exports.createSessions = async (req, res) => {
     const { table_id, customer_count } = req.body;
 
     if (!table_id || !customer_count) {
@@ -107,13 +106,6 @@ exports.createSessionsAndBills = async (req, res) => {
 
         const result = await client.query(createSessionSql, [table_id, customer_count]);
         const newSession = result.rows[0];
-
-        const createBillSql = `
-            INSERT INTO bills (session_id, total_play_price, total_order_price, grand_total, status)
-            VALUES ($1, 0, 0, 0, 'PENDING')
-            RETURNING *;
-        `;
-        await client.query(createBillSql, [newSession.session_id]);
 
         await client.query('COMMIT');
 
@@ -138,7 +130,7 @@ exports.createSessionsAndBills = async (req, res) => {
     }
 }
 
-exports.closedSessionAndBill = async (req, res) => {
+exports.closedSession = async (req, res) => {
     const { session_id } = req.body;
 
     if (!session_id) {
@@ -213,6 +205,7 @@ exports.getOrdersBySessionId = async (req, res) => {
         // อัปเดต status เป็น 'closed' และลง end_time ปัจจุบัน
         const sql = `
             SELECT 
+                p.product_id As product_id,
                 p.name AS product_name,
                 p.category,
                 SUM(oi.quantity)::INT AS quantity,
@@ -392,9 +385,10 @@ exports.updateBill = async (req, res) => {
             error: error.message
         });
     }
-}
+};
+
 exports.createBillItem = async (req, res) => {
-    const { session_id, customer_pay_count } = req.body;
+    const { session_id, customer_pay_count, product_ids } = req.body;
 
     if (!session_id || customer_pay_count === undefined) {
         return res.status(400).json({
@@ -404,27 +398,38 @@ exports.createBillItem = async (req, res) => {
     }
 
     try {
+        const createBillSql = await pool.query(
+            `INSERT INTO bills (session_id, total_play_price, total_order_price, grand_total,payment_time, status)
+                 VALUES ($1, 0, 0, 0, NOW(), 'PENDING') 
+                 RETURNING bill_id`,
+            [session_id]
+        );
+
+        const bill_id = createBillSql.rows[0].bill_id;
+
+        if (!product_ids || product_ids.length === 0) {
+            return res.status(201).json({
+                status: "success",
+                message: "Created bill for customer count successfully",
+                data: { bill_id, customer_pay_count }
+            });
+        }
+
         const sql = `
-            INSERT INTO bill_items (bill_id, order_item_id, customer_pay_count)
+            INSERT INTO bill_items (bill_id, order_item_id, customer_pay_count, created_at)
             SELECT 
-                b.bill_id,
-                oi.item_id,
-                $1 AS customer_pay_count
-            FROM orders o
-            JOIN order_items oi ON o.order_id = oi.order_id
-            JOIN bills b ON b.session_id = o.session_id
-            WHERE o.session_id = $2
+                $1::INT AS bill_id,
+                oi.item_id AS order_item_id,
+                $2::INT AS customer_pay_count,
+                NOW() AS created_at
+            FROM order_items oi
+            JOIN orders o ON oi.order_id = o.order_id
+            WHERE o.session_id = $3
+            AND oi.product_id = ANY($4::INT[])
             RETURNING *;
         `;
 
-        const result = await pool.query(sql, [customer_pay_count, session_id]);
-
-        if (result.rowCount === 0) {
-            return res.status(404).json({
-                status: "error",
-                message: "Cannot create bill items. Please make sure the bill and orders exist for this session."
-            });
-        }
+        const result = await pool.query(sql, [bill_id, customer_pay_count, session_id, product_ids]);
 
         res.status(201).json({
             status: "success",
@@ -440,4 +445,4 @@ exports.createBillItem = async (req, res) => {
             error: error.message
         });
     }
-}
+};

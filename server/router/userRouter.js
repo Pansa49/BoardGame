@@ -16,8 +16,8 @@ userRouter.route('/order')
     .post(userService.createOrders)
 
 userRouter.route('/session')
-    .post(userService.createSessionsAndBills)
-    .put(userService.closedSessionAndBill)
+    .post(userService.createSessions)
+    .put(userService.closedSession)
 
 userRouter.route('/session/:session_id/orders')
     .get(userService.getOrdersBySessionId)
