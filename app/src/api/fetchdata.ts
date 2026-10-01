@@ -190,7 +190,7 @@ export async function updateBill(session_id: number, bill: Bill) {
     }
 }
 
-export async function updateBillItemBySessionId(session_id: number, selectedCustomer: number, productIds: number[]) {
+export async function CreateBillBySessionId(session_id: number, selectedCustomer: number, productIds: number[]) {
     try {
         const payload = {
             session_id: session_id,
@@ -198,7 +198,7 @@ export async function updateBillItemBySessionId(session_id: number, selectedCust
             product_ids: productIds
         };
 
-        const response = await fetch(`${local_api_url}/bill-item`, {
+        const response = await fetch(`${local_api_url}/bill`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
