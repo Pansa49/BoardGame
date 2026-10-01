@@ -387,7 +387,7 @@ exports.updateBill = async (req, res) => {
     }
 };
 
-exports.createBillAndBillItem = async (req, res) => {
+exports.createBill = async (req, res) => {
     const { session_id, customer_pay_count, product_ids } = req.body;
 
     if (!session_id || customer_pay_count === undefined) {

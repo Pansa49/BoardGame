@@ -28,8 +28,6 @@ userRouter.route('/session/:session_id/customer-count')
 
 userRouter.route('/bill')
     .put(userService.updateBill)
-
-userRouter.route('/bill-item')
-    .post(userService.createBillAndBillItem)
+    .post(userService.createBill)
 
 module.exports = userRouter;
