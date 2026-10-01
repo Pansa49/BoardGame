@@ -18,7 +18,7 @@ export function CustomerModeList({ onCustomerCountChange }: CustomerModeListProp
     };
 
     const handleClick = async () => {
-        console.log(customerCount)
+        console.log("set customer : ", customerCount)
         if (!currentSessionId) {
             alert("ไม่พบข้อมูลเซสชัน กรุณาเลือกโต๊ะใหม่อีกครั้ง");
             return

@@ -7,7 +7,6 @@ type CartContextType = {
     currentSessionId: number | null;
     totalBill: Bill[];
 
-    // fn
     updateMenus: (menu: Menu[]) => void;
     updateTotalBill: (bill: Bill) => void;
     updateSessionId: (sessionId: number | null) => void;
@@ -22,13 +21,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const [menus, setMenus] = useState<Menu[]>([]);
     const [totalBill, setTotalBill] = useState<Bill[]>([]);
     const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
-
-    /* State สำหรับเก็บจำนวนสินค้าชั่วคราว ย่อจาก = useState<{ [key: number]: number }>({});*/
     const [tempOrders, setTempOrders] = useState<Record<number, number>>({});
 
     useEffect(() => {
-        console.log("totalBill : ", totalBill);
         console.log("currentSessionId : ", currentSessionId);
+        console.log("totalBill : ", totalBill);
     }, [totalBill, currentSessionId]);
 
     const updateMenus = (menu: Menu[]) => { setMenus(menu); };

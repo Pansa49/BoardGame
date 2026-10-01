@@ -85,7 +85,6 @@ exports.createOrders = async (req, res) => {
 };
 
 exports.createSessions = async (req, res) => {
-
     const { table_id, customer_count } = req.body;
 
     if (!table_id || !customer_count) {
@@ -112,18 +111,18 @@ exports.createSessions = async (req, res) => {
 
         res.status(201).json({
             status: "success",
-            message: "Add All Orders successfully",
+            message: "Session created successfully",
             data: { newSession }
         });
 
     } catch (error) {
 
         await client.query('ROLLBACK');
-        console.error("Database Order Error:", error);
+        console.error("Database Session Error:", error);
 
         res.status(500).json({
             status: "error",
-            message: "Failed to add orders",
+            message: "Failed to create session",
             error: error.message
         });
     } finally {
@@ -146,13 +145,18 @@ exports.closedSession = async (req, res) => {
         await client.query('BEGIN');
 
         // อัปเดต status เป็น 'closed' และลง end_time ปัจจุบัน
-        const sql = `
+        const updateSessionSql = `
             UPDATE sessions 
-            SET status = 'closed', end_time = CURRENT_TIMESTAMP 
+            SET 
+            end_time = CURRENT_TIMESTAMP ,
+            status = CASE 
+                WHEN EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - start_time)) < 600 THEN 'cancel'
+                ELSE 'closed'
+            END
             WHERE session_id = $1 
             RETURNING *;
         `;
-        const result = await client.query(sql, [session_id]);
+        const sessionResult = await client.query(updateSessionSql, [session_id]);
 
         if (result.rowCount === 0) {
             await client.query('ROLLBACK');
@@ -201,6 +205,7 @@ exports.getOrdersBySessionId = async (req, res) => {
         // อัปเดต status เป็น 'closed' และลง end_time ปัจจุบัน
         const sql = `
             SELECT 
+                p.product_id As product_id,
                 p.name AS product_name,
                 p.category,
                 SUM(oi.quantity)::INT AS quantity,
@@ -334,6 +339,138 @@ exports.updateCustomerCountBySessionId = async (req, res) => {
         res.status(500).json({
             status: "error",
             message: "Failed to update customer count",
+            error: error.message
+        });
+    }
+};
+
+exports.updateBill = async (req, res) => {
+    const item = req.body;
+
+    if (!item) {
+        return res.status(400).json({
+            status: "error",
+            message: "Missing or invalid required fields (item)"
+        });
+    }
+
+    try {
+        const sql = `
+            INSERT INTO bills (session_id, 
+            total_play_price,
+            total_order_price,
+            grand_total) 
+            VALUES ($1, $2,$3,$4) 
+            RETURNING *;
+        `;
+
+        const result = await pool.query(sql, [
+            item.session_id,
+            item.total_play_price,
+            item.total_order_price,
+            item.grand_total
+        ]);
+
+        res.status(200).json({
+            status: "success",
+            message: "Create Bill successfully",
+            data: result.rows
+        });
+
+    } catch (error) {
+        console.error("Create Bill Error:", error);
+        res.status(500).json({
+            status: "error",
+            message: "Failed to create Bill",
+            error: error.message
+        });
+    }
+};
+
+exports.createBill = async (req, res) => {
+    const { session_id, customer_pay_count, product_ids } = req.body;
+
+    if (!session_id || customer_pay_count === undefined) {
+        return res.status(400).json({
+            status: "error",
+            message: "Missing required fields (session_id or customer_pay_count)"
+        });
+    }
+
+    try {
+        const createBillSql = await pool.query(
+            `INSERT INTO bills (session_id, total_play_price, total_order_price, grand_total, payment_time, customer_pay_count)
+             VALUES ($1, 0, 0, 0, NOW(), $2) 
+             RETURNING bill_id`,
+            [session_id, customer_pay_count]
+        );
+
+        const bill_id = createBillSql.rows[0].bill_id;
+
+        let insertedItems = [];
+        if (!product_ids || product_ids.length > 0) {
+            const insertItemSql = `
+                INSERT INTO bill_items (bill_id, order_item_id, created_at)
+                SELECT 
+                    $1::INT AS bill_id,
+                    oi.item_id AS order_item_id,
+                    NOW() AS created_at
+                FROM order_items oi
+                JOIN orders o ON oi.order_id = o.order_id
+                WHERE o.session_id = $2::INT
+                  AND oi.product_id = ANY($3::INT[])
+                RETURNING *;
+            `;
+            const result = await pool.query(insertItemSql, [bill_id, session_id, product_ids]);
+            insertedItems = result.rows;
+        }
+
+        const updateBillPriceSql = `
+            WITH session_time AS (
+                SELECT 
+                    GREATEST(0, EXTRACT(EPOCH FROM (COALESCE(s.end_time, NOW()) - s.start_time)) / 60) AS total_minutes
+                FROM sessions s
+                WHERE s.session_id = $2
+            ),
+            play_calc AS (
+                SELECT 
+                    CASE 
+                        WHEN total_minutes <= 10 THEN 0
+                        ELSE CEIL((total_minutes - 10) / 60.0) * 50
+                    END AS hourly_rate_per_person
+            FROM session_time
+            ),
+            order_sum AS (
+                SELECT COALESCE(SUM(oi.unit_price * oi.quantity), 0) AS calc_order_price
+                FROM bill_items bi
+                JOIN order_items oi ON bi.order_item_id = oi.item_id
+                WHERE bi.bill_id = $1
+            )
+            UPDATE bills
+            SET 
+                total_play_price = customer_pay_count * (SELECT hourly_rate_per_person FROM play_calc),
+                total_order_price = (SELECT calc_order_price FROM order_sum),
+                grand_total = (customer_pay_count * (SELECT hourly_rate_per_person FROM play_calc)) + (SELECT calc_order_price FROM order_sum)
+            WHERE bill_id = $1
+            RETURNING *;
+        `;
+
+        const updatedBillRes = await pool.query(updateBillPriceSql, [bill_id, session_id]);
+
+        return res.status(201).json({
+            status: "success",
+            message: "Bill created and updated successfully",
+            data: {
+                bill: updatedBillRes.rows[0],
+                bill_items: insertedItems
+            }
+        });
+
+    } catch (error) {
+        console.error("Create Bill Item Error:", error);
+        res.status(500).json({
+            status: "error",
+            message: "Failed to create Bill Item",
             error: error.message
         });
     }

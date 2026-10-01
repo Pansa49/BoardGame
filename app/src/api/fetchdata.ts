@@ -1,6 +1,4 @@
-import type { OrderItemPayload } from "../../../share/details"
-
-
+import type { OrderItemPayload, Bill } from "../../../share/details"
 const local_api_url = "http://localhost:8080/boardgame";
 
 export async function getMenus() {
@@ -158,6 +156,65 @@ export async function updateCustomerNumBySessionId(session_id: number, value: nu
 
     } catch (error) {
         console.error("Error updating customer count:", error);
+        return { success: false, error };
+    }
+}
+
+export async function updateBill(session_id: number, bill: Bill) {
+    try {
+        const payload = {
+            session_id: session_id,
+            total_play_price: bill.play_price,
+            total_order_price: bill.order_price,
+            grand_total: bill.total_price,
+        };
+
+        const data = await fetch(`${local_api_url}/bill`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!data.ok) {
+            throw new Error(`HTTP error! status: ${data.status}`);
+        }
+
+        const response = await data.json();
+        return { success: true, response: response };
+
+    } catch (error) {
+        console.error("Error creating bill:", error);
+        return { success: false, error };
+    }
+}
+
+export async function CreateBillBySessionId(session_id: number, selectedCustomer: number, productIds: number[]) {
+    try {
+        const payload = {
+            session_id: session_id,
+            customer_pay_count: selectedCustomer,
+            product_ids: productIds
+        };
+
+        const response = await fetch(`${local_api_url}/bill`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return { success: true, data: data };
+
+    } catch (error) {
+        console.error("Error creating bill item:", error);
         return { success: false, error };
     }
 }
