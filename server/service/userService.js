@@ -387,7 +387,7 @@ exports.updateBill = async (req, res) => {
     }
 };
 
-exports.createBillItem = async (req, res) => {
+exports.createBillAndBillItem = async (req, res) => {
     const { session_id, customer_pay_count, product_ids } = req.body;
 
     if (!session_id || customer_pay_count === undefined) {
@@ -399,42 +399,71 @@ exports.createBillItem = async (req, res) => {
 
     try {
         const createBillSql = await pool.query(
-            `INSERT INTO bills (session_id, total_play_price, total_order_price, grand_total,payment_time, status)
-                 VALUES ($1, 0, 0, 0, NOW(), 'PENDING') 
-                 RETURNING bill_id`,
-            [session_id]
+            `INSERT INTO bills (session_id, total_play_price, total_order_price, grand_total, payment_time, customer_pay_count)
+             VALUES ($1, 0, 0, 0, NOW(), $2) 
+             RETURNING bill_id`,
+            [session_id, customer_pay_count]
         );
 
         const bill_id = createBillSql.rows[0].bill_id;
 
-        if (!product_ids || product_ids.length === 0) {
-            return res.status(201).json({
-                status: "success",
-                message: "Created bill for customer count successfully",
-                data: { bill_id, customer_pay_count }
-            });
+        let insertedItems = [];
+        if (!product_ids || product_ids.length > 0) {
+            const insertItemSql = `
+                INSERT INTO bill_items (bill_id, order_item_id, created_at)
+                SELECT 
+                    $1::INT AS bill_id,
+                    oi.item_id AS order_item_id,
+                    NOW() AS created_at
+                FROM order_items oi
+                JOIN orders o ON oi.order_id = o.order_id
+                WHERE o.session_id = $2::INT
+                  AND oi.product_id = ANY($3::INT[])
+                RETURNING *;
+            `;
+            const result = await pool.query(insertItemSql, [bill_id, session_id, product_ids]);
+            insertedItems = result.rows;
         }
 
-        const sql = `
-            INSERT INTO bill_items (bill_id, order_item_id, customer_pay_count, created_at)
-            SELECT 
-                $1::INT AS bill_id,
-                oi.item_id AS order_item_id,
-                $2::INT AS customer_pay_count,
-                NOW() AS created_at
-            FROM order_items oi
-            JOIN orders o ON oi.order_id = o.order_id
-            WHERE o.session_id = $3
-            AND oi.product_id = ANY($4::INT[])
+        const updateBillPriceSql = `
+            WITH session_time AS (
+                SELECT 
+                    GREATEST(0, EXTRACT(EPOCH FROM (COALESCE(s.end_time, NOW()) - s.start_time)) / 60) AS total_minutes
+                FROM sessions s
+                WHERE s.session_id = $2
+            ),
+            play_calc AS (
+                SELECT 
+                    CASE 
+                        WHEN total_minutes <= 10 THEN 0
+                        ELSE CEIL((total_minutes - 10) / 60.0) * 50
+                    END AS hourly_rate_per_person
+            FROM session_time
+            ),
+            order_sum AS (
+                SELECT COALESCE(SUM(oi.unit_price * oi.quantity), 0) AS calc_order_price
+                FROM bill_items bi
+                JOIN order_items oi ON bi.order_item_id = oi.item_id
+                WHERE bi.bill_id = $1
+            )
+            UPDATE bills
+            SET 
+                total_play_price = customer_pay_count * (SELECT hourly_rate_per_person FROM play_calc),
+                total_order_price = (SELECT calc_order_price FROM order_sum),
+                grand_total = (customer_pay_count * (SELECT hourly_rate_per_person FROM play_calc)) + (SELECT calc_order_price FROM order_sum)
+            WHERE bill_id = $1
             RETURNING *;
         `;
 
-        const result = await pool.query(sql, [bill_id, customer_pay_count, session_id, product_ids]);
+        const updatedBillRes = await pool.query(updateBillPriceSql, [bill_id, session_id]);
 
-        res.status(201).json({
+        return res.status(201).json({
             status: "success",
-            message: "Created bill items successfully",
-            data: result.rows
+            message: "Bill created and updated successfully",
+            data: {
+                bill: updatedBillRes.rows[0],
+                bill_items: insertedItems
+            }
         });
 
     } catch (error) {

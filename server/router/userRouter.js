@@ -30,6 +30,6 @@ userRouter.route('/bill')
     .put(userService.updateBill)
 
 userRouter.route('/bill-item')
-    .post(userService.createBillItem)
+    .post(userService.createBillAndBillItem)
 
 module.exports = userRouter;
