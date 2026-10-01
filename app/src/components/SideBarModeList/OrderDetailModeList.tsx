@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getOrderBySessionId, getCustomerNumBySessionId, updateBillItemBySessionId } from '../../api/fetchdata';
+import { getOrderBySessionId, getCustomerNumBySessionId, CreateBillBySessionId } from '../../api/fetchdata';
 import { useCartContext } from "../../hook/use-cart-context";
 import type { Bill, OrderItem } from "../../../../share/details";
 
@@ -129,7 +129,7 @@ export function OrderDetailModeList() {
             console.log('currentSessionId : ', currentSessionId)
             console.log('selectedCustomers : ', selectedCustomers.length)
             console.log('selectedOrderProductIds : ', selectedOrderProductIds)
-            await updateBillItemBySessionId(currentSessionId, selectedCustomers.length, selectedOrderProductIds);
+            await CreateBillBySessionId(currentSessionId, selectedCustomers.length, selectedOrderProductIds);
 
             updateTotalBill(bill);
 
