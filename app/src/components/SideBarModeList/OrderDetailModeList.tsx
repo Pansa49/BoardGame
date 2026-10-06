@@ -121,15 +121,27 @@ export function OrderDetailModeList() {
     const handleClickCreateBill = async () => {
         if (!bill || !currentSessionId) return;
 
-        const selectedOrderProductIds = selectedOrders
-            .map((i) => orderDetail[i]?.product_id)
-            .filter((id): id is number => id !== undefined);
+        const objSelectedItems = Object.values(
+            selectedOrders.reduce((acc, index) => {
+                const item = orderDetail[index];
+                if (!item || item.product_id === undefined) return acc;
+
+                const productId = item.product_id;
+
+                if (acc[productId]) {
+                    acc[productId].quantity += 1;
+                } else {
+                    acc[productId] = {
+                        product_id: productId,
+                        quantity: 1
+                    };
+                }
+                return acc;
+            }, {} as Record<number, { product_id: number; quantity: number }>)
+        );
 
         try {
-            console.log('currentSessionId : ', currentSessionId)
-            console.log('selectedCustomers : ', selectedCustomers.length)
-            console.log('selectedOrderProductIds : ', selectedOrderProductIds)
-            await CreateBillBySessionId(currentSessionId, selectedCustomers.length, selectedOrderProductIds);
+            await CreateBillBySessionId(currentSessionId, selectedCustomers.length, objSelectedItems);
 
             updateTotalBill(bill);
 
