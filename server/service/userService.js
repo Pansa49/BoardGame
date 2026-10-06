@@ -1,22 +1,27 @@
 const pool = require('../db/pool');
 
-exports.getMenus = async (req, res) => {
-    let sql = 'SELECT * FROM products'
-    let result = await pool.query(sql)
-
-    // console.log(result);
-    res.status(200).json({ status: "success", message: "Get All Menu", data: result.rows })
-}
-
 exports.getStartServer = (req, res) => {
     res.status(200).json({ status: "success", data: " Server Start" })
 }
 
-exports.getTables = async (req, res) => {
-    let sql = 'SELECT * FROM tables'
-    let result = await pool.query(sql)
+exports.getMenus = async (req, res) => {
+    try {
+        let sql = 'SELECT * FROM products';
+        let result = await pool.query(sql);
+        res.status(200).json({ status: "success", message: "Get All Menu", data: result.rows });
+    } catch (error) {
+        res.status(500).json({ status: "error", message: error.message });
+    }
+};
 
-    res.status(200).json({ status: "success", message: "Get All Table", data: result.rows })
+exports.getTables = async (req, res) => {
+    try {
+        let sql = 'SELECT * FROM tables'
+        let result = await pool.query(sql)
+        res.status(200).json({ status: "success", message: "Get All Table", data: result.rows })
+    } catch (error) {
+        res.status(500).json({ status: "error", message: error.message });
+    }
 }
 
 exports.createOrders = async (req, res) => {
@@ -156,7 +161,7 @@ exports.closedSession = async (req, res) => {
             WHERE session_id = $1 
             RETURNING *;
         `;
-        const sessionResult = await client.query(updateSessionSql, [session_id]);
+        const result = await client.query(updateSessionSql, [session_id]);
 
         if (result.rowCount === 0) {
             await client.query('ROLLBACK');
@@ -345,12 +350,12 @@ exports.updateCustomerCountBySessionId = async (req, res) => {
 };
 
 exports.updateBill = async (req, res) => {
-    const item = req.body;
+    const { session_id, total_play_price, total_order_price, grand_total } = req.body;
 
-    if (!item) {
+    if (!session_id || !total_play_price || !total_order_price || !grand_total) {
         return res.status(400).json({
             status: "error",
-            message: "Missing or invalid required fields (item)"
+            message: "Missing required fields"
         });
     }
 
@@ -365,10 +370,10 @@ exports.updateBill = async (req, res) => {
         `;
 
         const result = await pool.query(sql, [
-            item.session_id,
-            item.total_play_price,
-            item.total_order_price,
-            item.grand_total
+            session_id,
+            total_play_price,
+            total_order_price,
+            grand_total
         ]);
 
         res.status(200).json({
@@ -388,7 +393,7 @@ exports.updateBill = async (req, res) => {
 };
 
 exports.createBill = async (req, res) => {
-    const { session_id, customer_pay_count, product_ids } = req.body;
+    const { session_id, customer_pay_count, selectedProducts } = req.body;
 
     if (!session_id || customer_pay_count === undefined) {
         return res.status(400).json({
@@ -398,6 +403,25 @@ exports.createBill = async (req, res) => {
     }
 
     try {
+        let calculatedOrderPrice = 0;
+        const productsList = Array.isArray(selectedProducts) ? selectedProducts : [];
+
+        if (productsList.length > 0) {
+            const pIds = productsList.map(item => item.product_id);
+
+            const priceRes = await pool.query(
+                `SELECT product_id, price FROM products WHERE product_id = ANY($1::INT[])`,
+                [pIds]
+            );
+
+            const priceMap = new Map(priceRes.rows.map(row => [row.product_id, Number(row.price)]));
+
+            calculatedOrderPrice = productsList.reduce((sum, item) => {
+                const price = priceMap.get(item.product_id) || 0;
+                return sum + (price * item.quantity);
+            }, 0);
+        }
+
         const createBillSql = await pool.query(
             `INSERT INTO bills (session_id, total_play_price, total_order_price, grand_total, payment_time, customer_pay_count)
              VALUES ($1, 0, 0, 0, NOW(), $2) 
@@ -408,7 +432,9 @@ exports.createBill = async (req, res) => {
         const bill_id = createBillSql.rows[0].bill_id;
 
         let insertedItems = [];
-        if (!product_ids || product_ids.length > 0) {
+
+        if (productsList.length > 0) {
+            const pIds = productsList.map(item => item.product_id);
             const insertItemSql = `
                 INSERT INTO bill_items (bill_id, order_item_id, created_at)
                 SELECT 
@@ -421,7 +447,7 @@ exports.createBill = async (req, res) => {
                   AND oi.product_id = ANY($3::INT[])
                 RETURNING *;
             `;
-            const result = await pool.query(insertItemSql, [bill_id, session_id, product_ids]);
+            const result = await pool.query(insertItemSql, [bill_id, session_id, pIds]);
             insertedItems = result.rows;
         }
 
@@ -438,24 +464,18 @@ exports.createBill = async (req, res) => {
                         WHEN total_minutes <= 10 THEN 0
                         ELSE CEIL((total_minutes - 10) / 60.0) * 50
                     END AS hourly_rate_per_person
-            FROM session_time
-            ),
-            order_sum AS (
-                SELECT COALESCE(SUM(oi.unit_price * oi.quantity), 0) AS calc_order_price
-                FROM bill_items bi
-                JOIN order_items oi ON bi.order_item_id = oi.item_id
-                WHERE bi.bill_id = $1
+                FROM session_time
             )
             UPDATE bills
             SET 
                 total_play_price = customer_pay_count * (SELECT hourly_rate_per_person FROM play_calc),
-                total_order_price = (SELECT calc_order_price FROM order_sum),
-                grand_total = (customer_pay_count * (SELECT hourly_rate_per_person FROM play_calc)) + (SELECT calc_order_price FROM order_sum)
+                total_order_price = $3,
+                grand_total = (customer_pay_count * (SELECT hourly_rate_per_person FROM play_calc)) + $3
             WHERE bill_id = $1
             RETURNING *;
         `;
 
-        const updatedBillRes = await pool.query(updateBillPriceSql, [bill_id, session_id]);
+        const updatedBillRes = await pool.query(updateBillPriceSql, [bill_id, session_id, calculatedOrderPrice]);
 
         return res.status(201).json({
             status: "success",
@@ -467,10 +487,10 @@ exports.createBill = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Create Bill Item Error:", error);
+        console.error("Create Bill Error:", error);
         res.status(500).json({
             status: "error",
-            message: "Failed to create Bill Item",
+            message: "Failed to create Bill",
             error: error.message
         });
     }
