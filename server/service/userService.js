@@ -2,7 +2,7 @@ const pool = require('../db/pool');
 
 exports.getStartServer = (req, res) => {
     res.status(200).json({ status: "success", data: " Server Start" })
-}
+};
 
 exports.getMenus = async (req, res) => {
     try {
@@ -16,16 +16,15 @@ exports.getMenus = async (req, res) => {
 
 exports.getTables = async (req, res) => {
     try {
-        let sql = 'SELECT * FROM tables'
-        let result = await pool.query(sql)
+        let sql = 'SELECT * FROM tables';
+        let result = await pool.query(sql);
         res.status(200).json({ status: "success", message: "Get All Table", data: result.rows })
     } catch (error) {
         res.status(500).json({ status: "error", message: error.message });
     }
-}
+};
 
 exports.createOrders = async (req, res) => {
-
     const { session_id, items } = req.body;
 
     if (!session_id || !Array.isArray(items) || items.length === 0) {
@@ -38,18 +37,17 @@ exports.createOrders = async (req, res) => {
     const client = await pool.connect();
 
     try {
-        await client.query('BEGIN'); // เริ่ม Transaction
+        await client.query('BEGIN');
 
-        // 2. INSERT ลงตาราง orders
         const orderSql = `
             INSERT INTO orders (session_id, order_time) 
             VALUES ($1, NOW()) 
             RETURNING order_id
         `;
-        const orderRes = await client.query(orderSql, [session_id])
+
+        const orderRes = await client.query(orderSql, [session_id]);
         const newOrderId = orderRes.rows[0].order_id;
 
-        // 3. วนลูป INSERT ลงตาราง order_items
         const itemSql = `
             INSERT INTO order_items (order_id, product_id, quantity, unit_price) 
             VALUES ($1, $2, $3, $4)
@@ -64,10 +62,8 @@ exports.createOrders = async (req, res) => {
             ]);
         }
 
-        // ยืนยันการบันทึกข้อมูลทั้งหมดลง Database
         await client.query('COMMIT');
 
-        // 4. ส่ง Response ตอบกลับ
         res.status(201).json({
             status: "success",
             message: "Order created successfully",
@@ -75,7 +71,6 @@ exports.createOrders = async (req, res) => {
         });
 
     } catch (error) {
-        // หากเกิดข้อผิดพลาดให้ Rollback ยกเลิกคำสั่งทั้งหมด
         await client.query('ROLLBACK');
         console.error("Database Order Error:", error);
 
@@ -85,7 +80,7 @@ exports.createOrders = async (req, res) => {
             error: error.message
         });
     } finally {
-        client.release(); // คืน Connection ให้ pool
+        client.release();
     }
 };
 
@@ -100,9 +95,9 @@ exports.createSessions = async (req, res) => {
     }
 
     const client = await pool.connect();
+
     try {
         await client.query('BEGIN');
-
         const createSessionSql = `
            INSERT INTO sessions (table_id, customer_count,play_price) 
             VALUES ($1, $2,50) 
@@ -119,9 +114,7 @@ exports.createSessions = async (req, res) => {
             message: "Session created successfully",
             data: { newSession }
         });
-
     } catch (error) {
-
         await client.query('ROLLBACK');
         console.error("Database Session Error:", error);
 
@@ -133,7 +126,7 @@ exports.createSessions = async (req, res) => {
     } finally {
         client.release();
     }
-}
+};
 
 exports.closedSession = async (req, res) => {
     const { session_id } = req.body;
@@ -146,10 +139,9 @@ exports.closedSession = async (req, res) => {
     }
 
     const client = await pool.connect();
+
     try {
         await client.query('BEGIN');
-
-        // อัปเดต status เป็น 'closed' และลง end_time ปัจจุบัน
         const updateSessionSql = `
             UPDATE sessions 
             SET 
@@ -161,6 +153,7 @@ exports.closedSession = async (req, res) => {
             WHERE session_id = $1 
             RETURNING *;
         `;
+
         const result = await client.query(updateSessionSql, [session_id]);
 
         if (result.rowCount === 0) {
@@ -206,8 +199,6 @@ exports.getOrdersBySessionId = async (req, res) => {
 
     try {
         await client.query('BEGIN');
-
-        // อัปเดต status เป็น 'closed' และลง end_time ปัจจุบัน
         const sql = `
             SELECT 
                 p.product_id As product_id,
@@ -430,7 +421,6 @@ exports.createBill = async (req, res) => {
         );
 
         const bill_id = createBillSql.rows[0].bill_id;
-
         let insertedItems = [];
 
         if (productsList.length > 0) {
