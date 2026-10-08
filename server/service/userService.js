@@ -1,16 +1,16 @@
 const pool = require('../db/pool');
 
 exports.getStartServer = (req, res) => {
-    res.status(200).json({ status: "success", data: " Server Start" })
+    return res.status(200).json({ status: "success", data: " Server Start" })
 };
 
 exports.getMenus = async (req, res) => {
     try {
         let sql = 'SELECT * FROM products';
         let result = await pool.query(sql);
-        res.status(200).json({ status: "success", message: "Get All Menu", data: result.rows });
+        return res.status(200).json({ status: "success", message: "Get All Menu", data: result.rows });
     } catch (error) {
-        res.status(500).json({ status: "error", message: error.message });
+        return res.status(500).json({ status: "error", message: error.message });
     }
 };
 
@@ -18,9 +18,9 @@ exports.getTables = async (req, res) => {
     try {
         let sql = 'SELECT * FROM tables';
         let result = await pool.query(sql);
-        res.status(200).json({ status: "success", message: "Get All Table", data: result.rows })
+        return res.status(200).json({ status: "success", message: "Get All Table", data: result.rows })
     } catch (error) {
-        res.status(500).json({ status: "error", message: error.message });
+        return res.status(500).json({ status: "error", message: error.message });
     }
 };
 
@@ -64,7 +64,7 @@ exports.createOrders = async (req, res) => {
 
         await client.query('COMMIT');
 
-        res.status(201).json({
+        return res.status(201).json({
             status: "success",
             message: "Order created successfully",
             data: { order_id: newOrderId }
@@ -74,7 +74,7 @@ exports.createOrders = async (req, res) => {
         await client.query('ROLLBACK');
         console.error("Database Order Error:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             status: "error",
             message: "Failed to add orders",
             error: error.message
@@ -109,7 +109,7 @@ exports.createSessions = async (req, res) => {
 
         await client.query('COMMIT');
 
-        res.status(201).json({
+        return res.status(201).json({
             status: "success",
             message: "Session created successfully",
             data: { newSession }
@@ -118,7 +118,7 @@ exports.createSessions = async (req, res) => {
         await client.query('ROLLBACK');
         console.error("Database Session Error:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             status: "error",
             message: "Failed to create session",
             error: error.message
@@ -166,7 +166,7 @@ exports.closedSession = async (req, res) => {
 
         await client.query('COMMIT');
 
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Session closed successfully",
             data: result.rows[0]
@@ -175,7 +175,7 @@ exports.closedSession = async (req, res) => {
     } catch (error) {
         await client.query('ROLLBACK');
         console.error("Close Session Error:", error);
-        res.status(500).json({
+        return res.status(500).json({
             status: "error",
             message: "Failed to close session",
             error: error.message
@@ -225,7 +225,7 @@ exports.getOrdersBySessionId = async (req, res) => {
 
         await client.query('COMMIT');
 
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Get Orders successfully",
             data: result.rows
@@ -234,7 +234,7 @@ exports.getOrdersBySessionId = async (req, res) => {
     } catch (error) {
         await client.query('ROLLBACK');
         console.error("Get Orders by Session ID Error:", error);
-        res.status(500).json({
+        return res.status(500).json({
             status: "error",
             message: "Failed to cancel session",
             error: error.message
@@ -277,7 +277,7 @@ exports.getCustomerCountBySessionId = async (req, res) => {
 
         await client.query('COMMIT');
 
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Get Orders successfully",
             data: result.rows
@@ -286,7 +286,7 @@ exports.getCustomerCountBySessionId = async (req, res) => {
     } catch (error) {
         await client.query('ROLLBACK');
         console.error("Get Orders by Session ID Error:", error);
-        res.status(500).json({
+        return res.status(500).json({
             status: "error",
             message: "Failed to cancel session",
             error: error.message
@@ -324,7 +324,7 @@ exports.updateCustomerCountBySessionId = async (req, res) => {
             });
         }
 
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Updated customer count successfully",
             data: result.rows
@@ -332,7 +332,7 @@ exports.updateCustomerCountBySessionId = async (req, res) => {
 
     } catch (error) {
         console.error("Update Customer Count Error:", error);
-        res.status(500).json({
+        return res.status(500).json({
             status: "error",
             message: "Failed to update customer count",
             error: error.message
@@ -367,7 +367,7 @@ exports.updateBill = async (req, res) => {
             grand_total
         ]);
 
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Create Bill successfully",
             data: result.rows
@@ -375,7 +375,7 @@ exports.updateBill = async (req, res) => {
 
     } catch (error) {
         console.error("Create Bill Error:", error);
-        res.status(500).json({
+        return res.status(500).json({
             status: "error",
             message: "Failed to create Bill",
             error: error.message
@@ -478,7 +478,7 @@ exports.createBill = async (req, res) => {
 
     } catch (error) {
         console.error("Create Bill Error:", error);
-        res.status(500).json({
+        return res.status(500).json({
             status: "error",
             message: "Failed to create Bill",
             error: error.message
