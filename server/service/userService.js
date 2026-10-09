@@ -1,7 +1,7 @@
 const pool = require('../db/pool');
 
 exports.getStartServer = (req, res) => {
-    return res.status(200).json({ status: "success", data: " Server Start" })
+    return res.status(200).json({ status: "success", data: "Server Start" })
 };
 
 exports.getMenus = async (req, res) => {
@@ -42,26 +42,25 @@ exports.createOrders = async (req, res) => {
         const orderSql = `
             INSERT INTO orders (session_id, order_time) 
             VALUES ($1, NOW()) 
-            RETURNING order_id
+            RETURNING order_id;
         `;
 
         const orderRes = await client.query(orderSql, [session_id]);
         const newOrderId = orderRes.rows[0].order_id;
 
+        const values = [];
+        const valueStrings = items.map((item, index) => {
+            const baseIndex = index * 4;
+            values.push(newOrderId, item.product_id, item.quantity, item.unit_price);
+            return `($${baseIndex + 1}, $${baseIndex + 2}, $${baseIndex + 3}, $${baseIndex + 4})`;
+        });
+
         const itemSql = `
             INSERT INTO order_items (order_id, product_id, quantity, unit_price) 
-            VALUES ($1, $2, $3, $4)
+            VALUES ${valueStrings.join(', ')};
         `;
 
-        for (const item of items) {
-            await client.query(itemSql, [
-                newOrderId,
-                item.product_id,
-                item.quantity,
-                item.unit_price
-            ]);
-        }
-
+        await client.query(itemSql, values);
         await client.query('COMMIT');
 
         return res.status(201).json({
@@ -94,20 +93,15 @@ exports.createSessions = async (req, res) => {
         });
     }
 
-    const client = await pool.connect();
-
     try {
-        await client.query('BEGIN');
         const createSessionSql = `
            INSERT INTO sessions (table_id, customer_count,play_price) 
             VALUES ($1, $2,50) 
             RETURNING *;
         `;
 
-        const result = await client.query(createSessionSql, [table_id, customer_count]);
+        const result = await pool.query(createSessionSql, [table_id, customer_count]);
         const newSession = result.rows[0];
-
-        await client.query('COMMIT');
 
         return res.status(201).json({
             status: "success",
@@ -115,16 +109,12 @@ exports.createSessions = async (req, res) => {
             data: { newSession }
         });
     } catch (error) {
-        await client.query('ROLLBACK');
         console.error("Database Session Error:", error);
-
         return res.status(500).json({
             status: "error",
             message: "Failed to create session",
             error: error.message
         });
-    } finally {
-        client.release();
     }
 };
 
@@ -138,10 +128,7 @@ exports.closedSession = async (req, res) => {
         });
     }
 
-    const client = await pool.connect();
-
     try {
-        await client.query('BEGIN');
         const updateSessionSql = `
             UPDATE sessions 
             SET 
@@ -154,17 +141,14 @@ exports.closedSession = async (req, res) => {
             RETURNING *;
         `;
 
-        const result = await client.query(updateSessionSql, [session_id]);
+        const result = await pool.query(updateSessionSql, [session_id]);
 
         if (result.rowCount === 0) {
-            await client.query('ROLLBACK');
             return res.status(404).json({
                 status: "error",
                 message: "Session not found"
             });
         }
-
-        await client.query('COMMIT');
 
         return res.status(200).json({
             status: "success",
@@ -173,15 +157,12 @@ exports.closedSession = async (req, res) => {
         });
 
     } catch (error) {
-        await client.query('ROLLBACK');
         console.error("Close Session Error:", error);
         return res.status(500).json({
             status: "error",
             message: "Failed to close session",
             error: error.message
         });
-    } finally {
-        client.release();
     }
 };
 
@@ -195,10 +176,7 @@ exports.getOrdersBySessionId = async (req, res) => {
         });
     }
 
-    const client = await pool.connect();
-
     try {
-        await client.query('BEGIN');
         const sql = `
             SELECT 
                 p.product_id As product_id,
@@ -213,17 +191,14 @@ exports.getOrdersBySessionId = async (req, res) => {
             GROUP BY p.product_id, p.name, p.category, oi.unit_price;
         `;
 
-        const result = await client.query(sql, [session_id]);
+        const result = await pool.query(sql, [session_id]);
 
         if (result.rowCount === 0) {
-            await client.query('ROLLBACK');
             return res.status(404).json({
                 status: "error",
                 message: "Session not found"
             });
         }
-
-        await client.query('COMMIT');
 
         return res.status(200).json({
             status: "success",
@@ -232,15 +207,12 @@ exports.getOrdersBySessionId = async (req, res) => {
         });
 
     } catch (error) {
-        await client.query('ROLLBACK');
         console.error("Get Orders by Session ID Error:", error);
         return res.status(500).json({
             status: "error",
-            message: "Failed to cancel session",
+            message: "Failed to get orders",
             error: error.message
         });
-    } finally {
-        client.release();
     }
 };
 
@@ -254,10 +226,7 @@ exports.getCustomerCountBySessionId = async (req, res) => {
         });
     }
 
-    const client = await pool.connect();
-
     try {
-        await client.query('BEGIN');
 
         const sql = `
             SELECT customer_count , start_time, end_time, play_price
@@ -265,34 +234,28 @@ exports.getCustomerCountBySessionId = async (req, res) => {
             WHERE session_id = $1;
         `;
 
-        const result = await client.query(sql, [session_id]);
+        const result = await pool.query(sql, [session_id]);
 
         if (result.rowCount === 0) {
-            await client.query('ROLLBACK');
             return res.status(404).json({
                 status: "error",
                 message: "Session not found"
             });
         }
 
-        await client.query('COMMIT');
-
         return res.status(200).json({
             status: "success",
-            message: "Get Orders successfully",
+            message: "Get Customer Count successfully",
             data: result.rows
         });
 
     } catch (error) {
-        await client.query('ROLLBACK');
-        console.error("Get Orders by Session ID Error:", error);
+        console.error("Get Customer Count by Session ID Error:", error);
         return res.status(500).json({
             status: "error",
-            message: "Failed to cancel session",
+            message: "Failed to get customer count",
             error: error.message
         });
-    } finally {
-        client.release();
     }
 };
 
@@ -393,36 +356,70 @@ exports.createBill = async (req, res) => {
         });
     }
 
+    const client = await pool.connect();
+
     try {
-        let calculatedOrderPrice = 0;
+        await client.query('BEGIN');
+
         const productsList = Array.isArray(selectedProducts) ? selectedProducts : [];
+        let calculatedOrderPrice = 0;
 
+        // 1. คำนวณราคาสินค้าที่เลือกจาก DB โดยตรง
         if (productsList.length > 0) {
-            const pIds = productsList.map(item => item.product_id);
-
-            const priceRes = await pool.query(
+            const productIds = productsList.map(item => item.product_id);
+            const priceRes = await client.query(
                 `SELECT product_id, price FROM products WHERE product_id = ANY($1::INT[])`,
-                [pIds]
+                [productIds]
             );
 
             const priceMap = new Map(priceRes.rows.map(row => [row.product_id, Number(row.price)]));
 
             calculatedOrderPrice = productsList.reduce((sum, item) => {
                 const price = priceMap.get(item.product_id) || 0;
-                return sum + (price * item.quantity);
+                return sum + (price * Number(item.quantity || 1));
             }, 0);
         }
 
-        const createBillSql = await pool.query(
-            `INSERT INTO bills (session_id, total_play_price, total_order_price, grand_total, payment_time, customer_pay_count)
-             VALUES ($1, 0, 0, 0, NOW(), $2) 
-             RETURNING bill_id`,
-            [session_id, customer_pay_count]
-        );
+        // 2. สร้าง Bill และคำนวณค่าเล่นตามเวลา (play price) + รวมราคาทั้งหมดใน Query เดียว
+        const createBillSql = `
+            WITH session_info AS (
+                SELECT 
+                    GREATEST(0, EXTRACT(EPOCH FROM (COALESCE(end_time, NOW()) - start_time)) / 60) AS total_minutes
+                FROM sessions 
+                WHERE session_id = $1
+            ),
+            calc_play AS (
+                SELECT 
+                    CASE 
+                        WHEN total_minutes <= 10 THEN 0
+                        ELSE CEIL((total_minutes - 10) / 60.0) * 50
+                    END AS rate_per_person
+                FROM session_info
+            )
+            INSERT INTO bills (
+                session_id, 
+                total_play_price, 
+                total_order_price, 
+                grand_total, 
+                payment_time, 
+                customer_pay_count
+            )
+            VALUES (
+                $1,
+                $2 * (SELECT rate_per_person FROM calc_play),
+                $3,
+                ($2 * (SELECT rate_per_person FROM calc_play)) + $3,
+                NOW(),
+                $2
+            )
+            RETURNING *;
+        `;
 
-        const bill_id = createBillSql.rows[0].bill_id;
+        const billRes = await client.query(createBillSql, [session_id, customer_pay_count, calculatedOrderPrice]);
+        const createdBill = billRes.rows[0];
+
+        // 3. บันทึกรายการสินค้าลง bill_items
         let insertedItems = [];
-
         if (productsList.length > 0) {
             const pIds = productsList.map(item => item.product_id);
             const insertItemSql = `
@@ -437,51 +434,30 @@ exports.createBill = async (req, res) => {
                   AND oi.product_id = ANY($3::INT[])
                 RETURNING *;
             `;
-            const result = await pool.query(insertItemSql, [bill_id, session_id, pIds]);
-            insertedItems = result.rows;
+            const itemsRes = await client.query(insertItemSql, [createdBill.bill_id, session_id, pIds]);
+            insertedItems = itemsRes.rows;
         }
 
-        const updateBillPriceSql = `
-            WITH session_time AS (
-                SELECT 
-                    GREATEST(0, EXTRACT(EPOCH FROM (COALESCE(s.end_time, NOW()) - s.start_time)) / 60) AS total_minutes
-                FROM sessions s
-                WHERE s.session_id = $2
-            ),
-            play_calc AS (
-                SELECT 
-                    CASE 
-                        WHEN total_minutes <= 10 THEN 0
-                        ELSE CEIL((total_minutes - 10) / 60.0) * 50
-                    END AS hourly_rate_per_person
-                FROM session_time
-            )
-            UPDATE bills
-            SET 
-                total_play_price = customer_pay_count * (SELECT hourly_rate_per_person FROM play_calc),
-                total_order_price = $3,
-                grand_total = (customer_pay_count * (SELECT hourly_rate_per_person FROM play_calc)) + $3
-            WHERE bill_id = $1
-            RETURNING *;
-        `;
-
-        const updatedBillRes = await pool.query(updateBillPriceSql, [bill_id, session_id, calculatedOrderPrice]);
+        await client.query('COMMIT');
 
         return res.status(201).json({
             status: "success",
-            message: "Bill created and updated successfully",
+            message: "Bill created successfully",
             data: {
-                bill: updatedBillRes.rows[0],
+                bill: createdBill,
                 bill_items: insertedItems
             }
         });
 
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error("Create Bill Error:", error);
         return res.status(500).json({
             status: "error",
             message: "Failed to create Bill",
             error: error.message
         });
+    } finally {
+        client.release();
     }
 };
