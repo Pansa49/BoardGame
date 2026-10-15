@@ -190,12 +190,12 @@ export async function updateBill(session_id: number, bill: Bill) {
     }
 }
 
-export async function CreateBillBySessionId(session_id: number, selectedCustomer: number, selectedProducts: { product_id: number, quantity: number }[]) {
+export async function CreateBillBySessionId(session_id: number, selectedCustomer: number, selectedItemIds: number[]) {
     try {
         const payload = {
             session_id: session_id,
             customer_pay_count: selectedCustomer,
-            selectedProducts: selectedProducts,
+            selectedItemIds: selectedItemIds
         };
 
         const response = await fetch(`${local_api_url}/bill`, {

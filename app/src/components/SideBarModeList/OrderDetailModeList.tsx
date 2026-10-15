@@ -9,6 +9,7 @@ export function OrderDetailModeList() {
 
     const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
     const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
+    const [selectedItemIds, setselectedItemIds] = useState<number[]>([]);
 
     const [billedOrders, setBilledOrders] = useState<number[]>([]);
     const [billedCustomers, setBilledCustomers] = useState<number[]>([]);
@@ -87,6 +88,7 @@ export function OrderDetailModeList() {
 
         const totalPlayPrice = selectedCustomers.length * playPrice;
         const selectedItems = selectedOrders.map((index) => orderDetail[index]).filter(Boolean);
+        const selectedItemIds = selectedItems.map((item) => item.order_item_id);
         const listOrderName = selectedItems.map((item) => item.product_name);
         const orderPrice = selectedItems.reduce((sum, item) => sum + (item.unit_price || 0), 0);
 
@@ -97,6 +99,8 @@ export function OrderDetailModeList() {
             order_price: orderPrice,
             total_price: totalPlayPrice + orderPrice
         });
+
+        setselectedItemIds(selectedItemIds);
 
     }, [selectedCustomers, selectedOrders, playPrice, orderDetail]);
 
@@ -121,27 +125,8 @@ export function OrderDetailModeList() {
     const handleClickCreateBill = async () => {
         if (!bill || !currentSessionId) return;
 
-        const objSelectedItems = Object.values(
-            selectedOrders.reduce((acc, index) => {
-                const item = orderDetail[index];
-                if (!item || item.product_id === undefined) return acc;
-
-                const productId = item.product_id;
-
-                if (acc[productId]) {
-                    acc[productId].quantity += 1;
-                } else {
-                    acc[productId] = {
-                        product_id: productId,
-                        quantity: 1
-                    };
-                }
-                return acc;
-            }, {} as Record<number, { product_id: number; quantity: number }>)
-        );
-
         try {
-            await CreateBillBySessionId(currentSessionId, selectedCustomers.length, objSelectedItems);
+            await CreateBillBySessionId(currentSessionId, selectedCustomers.length, selectedItemIds);
 
             updateTotalBill(bill);
 
