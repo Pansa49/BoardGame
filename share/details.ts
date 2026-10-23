@@ -59,6 +59,7 @@ export type SideBarProps = {
 };
 
 export interface OrderItem {
+    order_item_id: number;
     product_id: number;
     product_name: string;
     category: string;

@@ -9,6 +9,7 @@ export function OrderDetailModeList() {
 
     const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
     const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
+    const [selectedItemIds, setselectedItemIds] = useState<number[]>([]);
 
     const [billedOrders, setBilledOrders] = useState<number[]>([]);
     const [billedCustomers, setBilledCustomers] = useState<number[]>([]);
@@ -87,6 +88,7 @@ export function OrderDetailModeList() {
 
         const totalPlayPrice = selectedCustomers.length * playPrice;
         const selectedItems = selectedOrders.map((index) => orderDetail[index]).filter(Boolean);
+        const selectedItemIds = selectedItems.map((item) => item.order_item_id);
         const listOrderName = selectedItems.map((item) => item.product_name);
         const orderPrice = selectedItems.reduce((sum, item) => sum + (item.unit_price || 0), 0);
 
@@ -97,6 +99,8 @@ export function OrderDetailModeList() {
             order_price: orderPrice,
             total_price: totalPlayPrice + orderPrice
         });
+
+        setselectedItemIds(selectedItemIds);
 
     }, [selectedCustomers, selectedOrders, playPrice, orderDetail]);
 
@@ -121,15 +125,8 @@ export function OrderDetailModeList() {
     const handleClickCreateBill = async () => {
         if (!bill || !currentSessionId) return;
 
-        const selectedOrderProductIds = selectedOrders
-            .map((i) => orderDetail[i]?.product_id)
-            .filter((id): id is number => id !== undefined);
-
         try {
-            console.log('currentSessionId : ', currentSessionId)
-            console.log('selectedCustomers : ', selectedCustomers.length)
-            console.log('selectedOrderProductIds : ', selectedOrderProductIds)
-            await CreateBillBySessionId(currentSessionId, selectedCustomers.length, selectedOrderProductIds);
+            await CreateBillBySessionId(currentSessionId, selectedCustomers.length, selectedItemIds);
 
             updateTotalBill(bill);
 
